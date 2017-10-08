@@ -1,0 +1,13 @@
+#!/bin/sh
+d=$(dirname $0)
+bindgen wrapper.h -o "$d/src/bindings.rs" \
+	--whitelist-function 'nvlist_.*' \
+	--whitelist-function 'libzfs_.*' \
+	--whitelist-function 'lzc_.*' \
+	--whitelist-type 'lzc_.*' \
+	--whitelist-type 'nvlist_.*' \
+	--whitelist-type 'dmu_replay_record' \
+	--opaque-type dmu_replay_record \
+	--blacklist-type 'va_list' \
+	--blacklist-type '_IO_FILE' \
+	-- `pkg-config libzfs_core --cflags`
