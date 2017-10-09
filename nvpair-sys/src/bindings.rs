@@ -630,3 +630,134 @@ extern "C" {
     pub fn nvlist_prev_nvpair(arg1: *mut nvlist_t, arg2: *mut nvpair_t)
      -> *mut nvpair_t;
 }
+extern "C" {
+    pub fn nvpair_name(arg1: *mut nvpair_t) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn nvpair_type(arg1: *mut nvpair_t) -> data_type_t::Type;
+}
+extern "C" {
+    pub fn nvpair_type_is_array(arg1: *mut nvpair_t) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_boolean_value(arg1: *mut nvpair_t,
+                                      arg2: *mut boolean_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_byte(arg1: *mut nvpair_t, arg2: *mut uchar_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_int8(arg1: *mut nvpair_t, arg2: *mut i8)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_uint8(arg1: *mut nvpair_t, arg2: *mut u8)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_int16(arg1: *mut nvpair_t, arg2: *mut i16)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_uint16(arg1: *mut nvpair_t, arg2: *mut u16)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_int32(arg1: *mut nvpair_t, arg2: *mut i32)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_uint32(arg1: *mut nvpair_t, arg2: *mut u32)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_int64(arg1: *mut nvpair_t, arg2: *mut i64)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_uint64(arg1: *mut nvpair_t, arg2: *mut u64)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_string(arg1: *mut nvpair_t,
+                               arg2: *mut *mut ::std::os::raw::c_char)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_nvlist(arg1: *mut nvpair_t, arg2: *mut *mut nvlist_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_boolean_array(arg1: *mut nvpair_t,
+                                      arg2: *mut *mut boolean_t,
+                                      arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_byte_array(arg1: *mut nvpair_t,
+                                   arg2: *mut *mut uchar_t, arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_int8_array(arg1: *mut nvpair_t, arg2: *mut *mut i8,
+                                   arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_uint8_array(arg1: *mut nvpair_t, arg2: *mut *mut u8,
+                                    arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_int16_array(arg1: *mut nvpair_t, arg2: *mut *mut i16,
+                                    arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_uint16_array(arg1: *mut nvpair_t, arg2: *mut *mut u16,
+                                     arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_int32_array(arg1: *mut nvpair_t, arg2: *mut *mut i32,
+                                    arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_uint32_array(arg1: *mut nvpair_t, arg2: *mut *mut u32,
+                                     arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_int64_array(arg1: *mut nvpair_t, arg2: *mut *mut i64,
+                                    arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_uint64_array(arg1: *mut nvpair_t, arg2: *mut *mut u64,
+                                     arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_string_array(arg1: *mut nvpair_t,
+                                     arg2:
+                                         *mut *mut *mut ::std::os::raw::c_char,
+                                     arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_nvlist_array(arg1: *mut nvpair_t,
+                                     arg2: *mut *mut *mut nvlist_t,
+                                     arg3: *mut uint_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_hrtime(arg1: *mut nvpair_t, arg2: *mut hrtime_t)
+     -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn nvpair_value_double(arg1: *mut nvpair_t, arg2: *mut f64)
+     -> ::std::os::raw::c_int;
+}

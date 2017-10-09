@@ -3,6 +3,7 @@ d=$(dirname $0)
 bindgen "$d/wrapper.h" \
 	-o "$d/src/bindings.rs" \
 	--whitelist-function 'nvlist_.*' \
+	--whitelist-function 'nvpair_.*' \
 	--whitelist-type 'nvlist_.*' \
 	--whitelist-type 'uint_t' \
 	--whitelist-type 'uchar_t' \
