@@ -7,3 +7,4 @@ authors = ["Cody P Schafer <dev@codyps.com>"]
 #bindgen = "0.30"
 
 [dependencies]
+libc = "*"

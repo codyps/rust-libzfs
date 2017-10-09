@@ -8,8 +8,18 @@ bindgen "$d/wrapper.h" \
 	--whitelist-type 'lzc_.*' \
 	--whitelist-type 'nvlist_.*' \
 	--whitelist-type 'dmu_replay_record' \
+	--whitelist-type 'uint_t' \
+	--whitelist-type 'uchar_t' \
+	--whitelist-type 'nv_alloc.*' \
+	--whitelist-type 'boolean.*' \
+	--whitelist-type 'nvpair.*' \
+	--whitelist-type 'nvlist.*' \
+	--whitelist-type 'hrtime.*' \
+	--whitelist-type 'data_type_.*' \
+	--constified-enum-module '.*' \
 	--opaque-type dmu_replay_record \
 	--blacklist-type 'va_list' \
 	--blacklist-type '_IO_FILE' \
 	--blacklist-type 'FILE' \
+	--no-recursive-whitelist \
 	-- `pkg-config libzfs_core --cflags`
