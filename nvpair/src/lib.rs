@@ -27,11 +27,28 @@ pub struct NvList {
 }
 
 impl NvList {
+    pub fn as_ptr(&self) -> *mut sys::nvlist
+    {
+        self.raw
+    }
+
     pub fn new() -> io::Result<Self> {
         let mut n = Self { raw: ptr::null_mut() };
         let v = unsafe {
             // TODO: second arg is a bitfield of NV_UNIQUE_NAME|NV_UNIQUE_NAME_TYPE
             sys::nvlist_alloc(&mut n.raw, 0, 0)
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(n) 
+        }
+    }
+
+    pub fn new_unqiue_names() -> io::Result<Self> {
+        let mut n = Self { raw: ptr::null_mut() };
+        let v = unsafe {
+            sys::nvlist_alloc(&mut n.raw, sys::NV_UNIQUE_NAME, 0)
         };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
@@ -101,6 +118,18 @@ impl NvList {
         let v = unsafe { sys::nvlist_exists(self.raw, name.as_ref().as_ptr()) };
         v != sys::boolean::B_FALSE
     }
+
+    pub fn lookup<S: CStrArgument>(&self, name: S) -> io::Result<NvPair>
+    {
+        let name = name.into_cstr();
+        let mut n = NvPair { parent: PhantomData, raw: ptr::null_mut() };
+        let v = unsafe { sys::nvlist_lookup_nvpair(self.as_ptr(), name.as_ref().as_ptr(), &mut n.raw) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(n)
+        }
+    }
 }
 
 impl Clone for NvList {
@@ -144,8 +173,13 @@ pub struct NvPair<'a> {
 }
 
 impl<'a> NvPair<'a> {
+    pub fn as_ptr(&self) -> *mut sys::nvpair
+    {
+        self.raw
+    }
+
     pub fn name(&self) -> &ffi::CStr
     {
-        unsafe { ffi::CStr::from_ptr(sys::nvpair_name(self.raw)) }
+        unsafe { ffi::CStr::from_ptr(sys::nvpair_name(self.as_ptr())) }
     }
 }

@@ -25,6 +25,7 @@ fn add_boolean()
     assert_eq!(p.name(), CStr::from_bytes_with_nul(&b"hi\0"[..]).unwrap());
 
     assert!(a.exists(&b"hi\0"[..]));
+    assert!(!a.exists("bye"));
 }
 
 #[test]
@@ -46,4 +47,16 @@ fn iter()
     }
 
     assert_eq!(ct, ns.len());
+}
+
+#[test]
+fn lookup() {
+    let ns = [ "one", "two", "three" ];
+    let mut a = nvpair::NvList::new_unqiue_names().unwrap();
+
+    for n in ns.iter() {
+        a.add_boolean(*n).unwrap();
+    }
+
+    a.lookup("one").unwrap();
 }
