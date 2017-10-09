@@ -17,7 +17,7 @@ fn new() {
 
 #[test]
 fn create() {
-    let mut b = test_fsname_base("create");
+    let b = test_fsname_base("create");
 
     let z = zfs::Zfs::new().unwrap();
     let nv = nvpair::NvList::new().unwrap();

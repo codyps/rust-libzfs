@@ -6,5 +6,6 @@ include = ["**/*.rs", "Cargo.toml"]
 description = "Bindings to libnvpair.so (nvpair & nvlist)"
 documentation = "https://docs.rs/nvpair-sys"
 repository = "https://github.com/jmesmon/rust-libzfs"
+license = "Apache-2.0 OR MIT"
 
 [dependencies]
