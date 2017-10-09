@@ -86,6 +86,13 @@ impl NvList {
             Some(NvPair { parent: self, raw: np })
         }
     }
+
+    pub fn exists<S: CStrArgument>(&self, name: S) -> bool
+    {
+        let name = name.into_cstr();
+        let v = unsafe { sys::nvlist_exists(self.raw, name.as_ref().as_ptr()) };
+        v != sys::boolean::B_FALSE
+    }
 }
 
 impl Clone for NvList {
@@ -102,6 +109,11 @@ impl Drop for NvList {
     }
 }
 
+// FIXME: we only need the parent value for iteration (which should likely be handled by a seperate
+// type) & for the lifetime (which we can handle via a phantom type or by using a transmuted
+// reference like CStr).
+//
+// Consider changing this into a CStr style type
 pub struct NvPair<'a> {
     parent: &'a NvList,
     raw: *mut sys::nvpair

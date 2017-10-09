@@ -21,5 +21,8 @@ fn add_boolean()
     let mut a = nvpair::NvList::new().unwrap();
     a.add_boolean(&b"hi\0"[..]).unwrap();
     assert_eq!(a.encoded_size(nvpair::NvEncoding::Native).unwrap(), 40);
-    assert_eq!(a.first().unwrap().name(), CStr::from_bytes_with_nul(&b"hi\0"[..]).unwrap());
+    let p = a.first().unwrap();
+    assert_eq!(p.name(), CStr::from_bytes_with_nul(&b"hi\0"[..]).unwrap());
+
+    assert!(a.exists(&b"hi\0"[..]));
 }
