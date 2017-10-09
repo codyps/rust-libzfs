@@ -1,0 +1,20 @@
+#! /bin/sh
+
+if [ $# -ne 1 ]; then
+	echo "usage: $(basename $0) zfs-fsname"
+	exit 1
+fi
+
+if [ -z "$SUDO_USER" ]; then
+	echo "User unknown"
+	exit 2
+fi
+
+base="$1"
+
+set -x
+zfs create "$base"
+zfs allow -uld "$SUDO_USER" create "$base"
+set +x
+
+echo "export ZFS_TEST_BASE=$base"
