@@ -2,5 +2,9 @@
 name = "nvpair-sys"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
+include = ["**/*.rs", "Cargo.toml"]
+description = "Bindings to libnvpair.so (nvpair & nvlist)"
+documentation = "https://docs.rs/nvpair-sys"
+repository = "https://github.com/jmesmon/rust-libzfs"
 
 [dependencies]

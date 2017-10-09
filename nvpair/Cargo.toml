@@ -2,6 +2,10 @@
 name = "nvpair"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
+include = ["**/*.rs", "Cargo.toml"]
+documentation = "https://docs.rs/nvpair"
+repository = "https://github.com/jmesmon/rust-libzfs"
+description = "Work with nvlist and nvpair (using nvpair-sys, libnvpair.so)"
 
 [dependencies]
 cstr-argument = "*"

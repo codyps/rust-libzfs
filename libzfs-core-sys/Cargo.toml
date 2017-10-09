@@ -2,6 +2,10 @@
 name = "libzfs-core-sys"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
+include = ["**/*.rs", "Cargo.toml"]
+documentation = "https://docs.rs/libzfs-core-sys"
+repository = "https://github.com/jmesmon/rust-libzfs"
+description = "Bindings to libzfs_core (lzc)"
 
 [build-dependencies]
 pkg-config = "0.3"

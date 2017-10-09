@@ -2,6 +2,9 @@
 name = "libzfs-core"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
+include = ["**/*.rs", "Cargo.toml"]
+documentation = "https://docs.rs/libzfs-core"
+repository = "https://github.com/jmesmon/rust-libzfs"
 
 [dependencies]
 nvpair = { path = "../nvpair", version = "0.1" }
