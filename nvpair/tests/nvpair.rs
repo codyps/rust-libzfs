@@ -1,5 +1,5 @@
 extern crate nvpair;
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 
 #[test]
 fn new()
@@ -25,4 +25,25 @@ fn add_boolean()
     assert_eq!(p.name(), CStr::from_bytes_with_nul(&b"hi\0"[..]).unwrap());
 
     assert!(a.exists(&b"hi\0"[..]));
+}
+
+#[test]
+fn iter()
+{
+    let ns = [ "one", "two", "three" ];
+    let mut a = nvpair::NvList::new().unwrap();
+
+    for n in ns.iter() {
+        a.add_boolean(*n).unwrap();
+    }
+
+    let mut ct = 0;
+    for i in a.iter().zip(ns.iter()) {
+        ct += 1;
+        let a = i.0.name();
+        let b = CString::new(*i.1).unwrap();
+        assert_eq!(a, b.as_c_str());
+    }
+
+    assert_eq!(ct, ns.len());
 }

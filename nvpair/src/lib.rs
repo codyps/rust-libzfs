@@ -2,6 +2,7 @@ extern crate nvpair_sys as sys;
 extern crate cstr_argument;
 
 use cstr_argument::CStrArgument;
+use std::marker::PhantomData;
 use std::io;
 use std::ptr;
 use std::ffi;
@@ -83,7 +84,14 @@ impl NvList {
         if np.is_null() {
             None
         } else {
-            Some(NvPair { parent: self, raw: np })
+            Some(NvPair { parent: PhantomData, raw: np })
+        }
+    }
+
+    pub fn iter(&self) -> NvListIter {
+        NvListIter {
+            parent: self,
+            pos: ptr::null_mut(),
         }
     }
 
@@ -109,27 +117,33 @@ impl Drop for NvList {
     }
 }
 
-// FIXME: we only need the parent value for iteration (which should likely be handled by a seperate
-// type) & for the lifetime (which we can handle via a phantom type or by using a transmuted
-// reference like CStr).
-//
-// Consider changing this into a CStr style type
-pub struct NvPair<'a> {
+pub struct NvListIter<'a> {
     parent: &'a NvList,
+    pos: *mut sys::nvpair, 
+}
+
+impl<'a> Iterator for NvListIter<'a> {
+    type Item = NvPair<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let np = unsafe { sys::nvlist_next_nvpair(self.parent.raw, self.pos) };  
+        self.pos = np;
+        if np.is_null() {
+            None
+        } else {
+            Some(NvPair { parent: PhantomData, raw: np })
+        }
+    }
+}
+
+
+// TODO: Consider changing this into a CStr style type
+pub struct NvPair<'a> {
+    parent: PhantomData<&'a ()>,
     raw: *mut sys::nvpair
 }
 
 impl<'a> NvPair<'a> {
-    pub fn next(&self) -> Option<NvPair>
-    {
-        let np = unsafe { sys::nvlist_next_nvpair(self.parent.raw, self.raw) };
-        if np.is_null() {
-            None
-        } else {
-            Some(NvPair { parent: self.parent, raw: np })
-        }
-    }
-
     pub fn name(&self) -> &ffi::CStr
     {
         unsafe { ffi::CStr::from_ptr(sys::nvpair_name(self.raw)) }
