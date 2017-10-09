@@ -3,8 +3,9 @@ name = "libzfs-core-sys"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 
-#[build-dependencies]
+[build-dependencies]
+pkg-config = "0.3"
 #bindgen = "0.30"
 
 [dependencies]
-libc = "*"
+libc = "0.2"

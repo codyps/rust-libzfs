@@ -1,0 +1,8 @@
+[package]
+name = "libzfs-core"
+version = "0.1.0"
+authors = ["Cody P Schafer <dev@codyps.com>"]
+
+[dependencies]
+libzfs-core-sys = { path = "../libzfs-core-sys", version = "0.1" }
+cstr-argument = "0.0"
