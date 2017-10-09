@@ -4,6 +4,8 @@ extern crate cstr_argument;
 use cstr_argument::CStrArgument;
 use std::marker::PhantomData;
 use std::io;
+use std::ptr;
+use std::os::raw::c_int;
 
 /// A handle to work with Zfs filesystems
 // Note: the Drop for this makes clone-by-copy unsafe. Could clone by just calling new().

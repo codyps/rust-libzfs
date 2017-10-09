@@ -2,10 +2,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-
-extern crate libc;
-
-use libc::FILE;
-pub enum __va_list_tag {}
+extern crate nvpair_sys as nvpair;
+use nvpair::*;
 
 include!("bindings.rs");

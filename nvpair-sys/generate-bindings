@@ -2,14 +2,17 @@
 d=$(dirname $0)
 bindgen "$d/wrapper.h" \
 	-o "$d/src/bindings.rs" \
-	--whitelist-function 'libzfs_.*' \
-	--whitelist-function 'lzc_.*' \
-	--whitelist-type 'lzc_.*' \
-	--whitelist-type 'dmu_replay_record' \
+	--whitelist-function 'nvlist_.*' \
+	--whitelist-type 'nvlist_.*' \
 	--whitelist-type 'uint_t' \
 	--whitelist-type 'uchar_t' \
+	--whitelist-type 'nv_alloc.*' \
+	--whitelist-type 'boolean.*' \
+	--whitelist-type 'nvpair.*' \
+	--whitelist-type 'nvlist.*' \
+	--whitelist-type 'hrtime.*' \
+	--whitelist-type 'data_type_.*' \
 	--constified-enum-module '.*' \
-	--opaque-type dmu_replay_record \
 	--blacklist-type 'va_list' \
 	--blacklist-type '_IO_FILE' \
 	--blacklist-type 'FILE' \

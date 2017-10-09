@@ -1,0 +1,6 @@
+[package]
+name = "nvpair-sys"
+version = "0.1.0"
+authors = ["Cody P Schafer <dev@codyps.com>"]
+
+[dependencies]
