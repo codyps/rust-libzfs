@@ -1,6 +1,5 @@
 extern crate libzfs_core as zfs;
 extern crate nvpair;
-use std::ffi::OsString;
 
 fn test_fsname_base(extra: &str) -> String
 {
@@ -22,4 +21,6 @@ fn create() {
     let z = zfs::Zfs::new().unwrap();
     let nv = nvpair::NvList::new().unwrap();
     z.create(b, zfs::DataSetType::Zfs, &nv).unwrap();
+
+    // XXX: libzfs_core lacks a destroy call at the moment (ZFS_IOC_DESTROY)
 }

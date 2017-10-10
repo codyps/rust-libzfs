@@ -27,6 +27,11 @@ pub struct NvList {
 }
 
 impl NvList {
+    pub unsafe fn from_ptr(v: *mut sys::nvlist) -> Self
+    {
+        NvList { raw: v }
+    }
+
     pub fn as_ptr(&self) -> *mut sys::nvlist
     {
         self.raw

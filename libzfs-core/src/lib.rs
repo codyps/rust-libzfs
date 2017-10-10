@@ -62,6 +62,22 @@ impl Zfs {
             Ok(())
         }
     }
+
+    // TODO: this is a fairly raw interface, consider abstracting (or at least adding some
+    // restrictions on the NvLists).
+    pub fn snapshot(&self, snaps: &NvList, props: &NvList) -> Result<(), (io::Error, NvList)>
+    {
+        let mut nv = ptr::null_mut();
+        let v = unsafe {
+            sys::lzc_snapshot(snaps.as_ptr(), props.as_ptr(), &mut nv)
+        };
+
+        if v != 0 {
+            Err((io::Error::from_raw_os_error(v), unsafe { NvList::from_ptr(nv) }))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl Drop for Zfs {
