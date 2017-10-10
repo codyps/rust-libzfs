@@ -60,3 +60,10 @@ fn lookup() {
 
     a.lookup("one").unwrap();
 }
+
+#[test]
+fn insert() {
+    let mut a = nvpair::NvList::new().unwrap();
+    nvpair::NvEncode::insert(&true, "bool1", &mut a).unwrap();
+    nvpair::NvEncode::insert(&6u32, "u32", &mut a).unwrap();
+}

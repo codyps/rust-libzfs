@@ -8,6 +8,47 @@ use std::ptr;
 use std::ffi;
 use std::os::raw::c_int;
 
+pub trait NvEncode {
+    fn insert<S: CStrArgument>(&self, S, &mut NvList) -> io::Result<()>;
+    //fn read(&self, NvPair &nv) -> io::Result<Self>;
+}
+
+impl NvEncode for bool {
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvList) -> io::Result<()>
+    {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_boolean_value(nv.as_ptr(), name.as_ref().as_ptr(),
+                if *self {
+                    sys::boolean::B_TRUE
+                } else {
+                    sys::boolean::B_FALSE
+                }
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for u32 {
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvList) -> io::Result<()>
+    {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_uint32(nv.as_ptr(), name.as_ref().as_ptr(), *self)
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
 pub enum NvEncoding {
     Native,
     Xdr

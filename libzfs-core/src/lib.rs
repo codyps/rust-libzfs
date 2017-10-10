@@ -78,6 +78,29 @@ impl Zfs {
             Ok(())
         }
     }
+
+    // clone
+    // promote
+    // destroy_snaps
+    // bookmark
+    // get_bookmarks
+    // destroy_bookmarks
+    // snaprange_space
+    // hold
+    // release
+    // get_holds
+    // send
+    // send_resume
+    // send_space
+    // receive
+    // receive_resumable
+    // receive_with_header
+    // receive_once
+    // receive_with_cmdprops
+    // exists
+    // rollback
+    // rollback_to
+    // sync
 }
 
 impl Drop for Zfs {
