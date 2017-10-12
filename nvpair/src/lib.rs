@@ -8,9 +8,26 @@ use std::ptr;
 use std::ffi;
 use std::os::raw::c_int;
 
+pub enum NvData {
+    Bool,
+    BoolV(bool),
+    Byte(u8),
+    Int8(i8),
+    Uint8(i8),
+    Int16(i16),
+    Uint16(u16),
+    Int32(i32),
+    Uint32(u32),
+    String(ffi::CString),
+    NvList(NvList),
+    // TODO: arrays
+    // hrtime
+    // double
+}
+
 pub trait NvEncode {
     fn insert<S: CStrArgument>(&self, S, &mut NvList) -> io::Result<()>;
-    //fn read(&self, NvPair &nv) -> io::Result<Self>;
+    //fn read(NvPair &nv) -> io::Result<Self>;
 }
 
 impl NvEncode for bool {
@@ -40,6 +57,36 @@ impl NvEncode for u32 {
         let name = name.into_cstr();
         let v = unsafe {
             sys::nvlist_add_uint32(nv.as_ptr(), name.as_ref().as_ptr(), *self)
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for ffi::CStr {
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvList) -> io::Result<()>
+    {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_string(nv.as_ptr(), name.as_ref().as_ptr(), self.as_ptr())
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for NvList {
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvList) -> io::Result<()>
+    {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_nvlist(nv.as_ptr(), name.as_ref().as_ptr(), self.as_ptr())
         };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
@@ -163,6 +210,16 @@ impl NvList {
         let name = name.into_cstr();
         let v = unsafe { sys::nvlist_exists(self.raw, name.as_ref().as_ptr()) };
         v != sys::boolean::B_FALSE
+    }
+
+    pub fn remove(&self, pair: &NvPair) -> io::Result<()>
+    {
+        let v = unsafe { sys::nvlist_remove_nvpair(self.as_ptr(), pair.as_ptr())};
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
     }
 
     pub fn lookup<S: CStrArgument>(&self, name: S) -> io::Result<NvPair>
