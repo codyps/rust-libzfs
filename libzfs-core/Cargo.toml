@@ -7,6 +7,6 @@ documentation = "https://docs.rs/libzfs-core"
 repository = "https://github.com/jmesmon/rust-libzfs"
 
 [dependencies]
-nvpair = { path = "../nvpair", version = "0.1" }
+nvpair = { path = "../nvpair", version = "0.2" }
 libzfs-core-sys = { path = "../libzfs-core-sys", version = "0.1" }
 cstr-argument = "0.0"
