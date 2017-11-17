@@ -3,6 +3,12 @@ rust:
     - stable
     - beta
     - nightly
+addons:
+    apt:
+        sources:
+            - sourceline: "ppa:zfs-native/daily"
+        packages:
+            - zfs-linux
 
 matrix:
     allow_failues:
