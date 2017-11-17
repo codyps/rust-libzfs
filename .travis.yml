@@ -8,7 +8,7 @@ addons:
         sources:
             - sourceline: "ppa:zfs-native/daily"
         packages:
-            - zfs-linux
+            - ubuntu-zfs
 
 matrix:
     allow_failues:
