@@ -18,6 +18,8 @@ pub enum NvData {
     Uint16(u16),
     Int32(i32),
     Uint32(u32),
+    Int64(i64),
+    Uint64(u64),
     String(ffi::CString),
     NvList(NvList),
     // TODO: arrays
