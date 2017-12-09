@@ -9,7 +9,13 @@ addons:
             - sourceline: "ppa:zfs-native/daily"
         packages:
             - ubuntu-zfs
-
+install:
+    - cargo build --package nvpair-sys --verbose
+    - cargo build --package nvpair --verbose
+script:
+    - cargo build --package nvpair-sys --verbose; cargo test --package nvpair-sys --verbose
+    - cargo build --package nvpair --verbose; cargo test --package nvpair --verbose
+cache: cargo
 matrix:
     allow_failues:
         - rust: nightly
