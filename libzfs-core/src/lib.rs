@@ -1,8 +1,10 @@
 extern crate libzfs_core_sys as sys;
 extern crate nvpair;
 extern crate cstr_argument;
+extern crate foreign_types;
 
 use nvpair::NvList;
+use foreign_types::{ForeignType};
 use cstr_argument::CStrArgument;
 use std::marker::PhantomData;
 use std::io;
@@ -53,7 +55,7 @@ impl Zfs {
     {
         let name = name.into_cstr();
         let v = unsafe {
-            sys::lzc_create(name.as_ref().as_ptr(), dataset_type.as_raw(), props.as_ptr())
+            sys::lzc_create(name.as_ref().as_ptr(), dataset_type.as_raw(), props.as_ptr() as *mut _)
         };
     
         if v != 0 {
@@ -69,7 +71,7 @@ impl Zfs {
     {
         let mut nv = ptr::null_mut();
         let v = unsafe {
-            sys::lzc_snapshot(snaps.as_ptr(), props.as_ptr(), &mut nv)
+            sys::lzc_snapshot(snaps.as_ptr() as *mut _, props.as_ptr() as *mut _, &mut nv)
         };
 
         if v != 0 {

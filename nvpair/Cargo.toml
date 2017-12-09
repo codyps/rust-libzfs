@@ -11,3 +11,4 @@ license = "Apache-2.0 OR MIT"
 [dependencies]
 cstr-argument = "0.0"
 nvpair-sys = { path = "../nvpair-sys", version = "0.1" }
+foreign-types = "0.3"
