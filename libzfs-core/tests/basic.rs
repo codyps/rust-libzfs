@@ -11,7 +11,7 @@ fn test_fsname_base(extra: &str) -> String
 
 #[test]
 fn new() {
-    let _ = zfs::Zfs::new();
+    let _ = zfs::Zfs::new().unwrap();
 }
 
 #[test]

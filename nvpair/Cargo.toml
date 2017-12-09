@@ -1,6 +1,6 @@
 [package]
 name = "nvpair"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 include = ["**/*.rs", "Cargo.toml"]
 documentation = "https://docs.rs/nvpair"

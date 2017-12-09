@@ -6,6 +6,7 @@ include = ["**/*.rs", "Cargo.toml"]
 documentation = "https://docs.rs/libzfs-core-sys"
 repository = "https://github.com/jmesmon/rust-libzfs"
 description = "Bindings to libzfs_core (lzc)"
+license = "Apache-2.0 OR MIT"
 
 [build-dependencies]
 pkg-config = "0.3"
