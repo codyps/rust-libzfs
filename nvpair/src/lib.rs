@@ -4,11 +4,12 @@ extern crate cstr_argument;
 extern crate foreign_types;
 
 use cstr_argument::CStrArgument;
+use std::mem;
 use std::io;
 use std::ptr;
 use std::ffi;
-use std::os::raw::c_int;
-use foreign_types::{Opaque, ForeignTypeRef, ForeignType};
+use std::os::raw::{c_int, c_uint};
+pub use foreign_types::{Opaque, ForeignTypeRef, ForeignType};
 
 pub enum NvData {
     Bool,
@@ -269,6 +270,88 @@ impl NvListRef {
         }
     }
 
+    pub fn lookup_nv_list<S: CStrArgument>(&self, name: S) -> io::Result<NvList> {
+        let name = name.into_cstr();
+
+        let mut n = ptr::null_mut();
+
+        let v = unsafe {
+            sys::nvlist_lookup_nvlist(self.as_ptr() as *mut _, name.as_ref().as_ptr(), &mut n)
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            let r = unsafe { NvList::from_ptr(n) };
+
+            Ok(r)
+        }
+    }
+
+    pub fn lookup_string<S: CStrArgument>(&self, name: S) -> io::Result<ffi::CString> {
+        let name = name.into_cstr();
+        let mut n;
+
+        let v = unsafe {
+            n = mem::uninitialized();
+
+            sys::nvlist_lookup_string(self.as_ptr() as *mut _, name.as_ref().as_ptr(), &mut n)
+        };
+
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            let s = unsafe { ffi::CStr::from_ptr(n).to_owned() };
+            Ok(s)
+        }
+    }
+
+    pub fn lookup_uint64<S: CStrArgument>(&self, name: S) -> io::Result<u64> {
+        let name = name.into_cstr();
+        let mut n: u64;
+
+        let v = unsafe {
+            n = mem::uninitialized();
+
+            sys::nvlist_lookup_uint64(self.as_ptr() as *mut _, name.as_ref().as_ptr(), &mut n)
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(n)
+        }
+    }
+
+
+    pub fn lookup_nv_list_array<S: CStrArgument>(&self, name: S) -> io::Result<Vec<NvList>> {
+        let name = name.into_cstr();
+
+        let mut n = ptr::null_mut();
+
+        let mut len: c_uint;
+
+        let v = unsafe {
+            len = mem::uninitialized();
+            sys::nvlist_lookup_nvlist_array(
+                self.as_ptr() as *mut _,
+                name.as_ref().as_ptr(),
+                &mut n,
+                &mut len,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            let r = unsafe {
+                std::slice::from_raw_parts(n, len as usize)
+                    .iter()
+                    .map(|x| NvList::from_ptr(*x))
+                    .collect()
+            };
+
+            Ok(r)
+        }
+    }
+
     pub fn try_to_owned(&self) -> io::Result<NvList> {
         let mut n = NvList(ptr::null_mut());
         let v = unsafe { sys::nvlist_dup(self.as_ptr() as *mut _, &mut n.0, 0) };
@@ -308,5 +391,19 @@ impl NvPair {
     pub fn name(&self) -> &ffi::CStr
     {
         unsafe { ffi::CStr::from_ptr(sys::nvpair_name(self.as_ptr())) }
+    }
+
+    pub fn value_nv_list(&self) -> io::Result<NvList> {
+        let mut nvl_target = ptr::null_mut();
+
+        unsafe {
+            let code = sys::nvpair_value_nvlist(self.as_ptr(), &mut nvl_target);
+
+            if code == 0 {
+                Ok(NvList::from_ptr(nvl_target))
+            } else {
+                Err(io::Error::from_raw_os_error(code))
+            }
+        }
     }
 }
