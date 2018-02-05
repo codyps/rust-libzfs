@@ -36,16 +36,17 @@ pub trait NvEncode {
 }
 
 impl NvEncode for bool {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>
-    {
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe {
-            sys::nvlist_add_boolean_value(nv.as_mut_ptr(), name.as_ref().as_ptr(),
+            sys::nvlist_add_boolean_value(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
                 if *self {
                     sys::boolean::B_TRUE
                 } else {
                     sys::boolean::B_FALSE
-                }
+                },
             )
         };
         if v != 0 {
@@ -57,12 +58,9 @@ impl NvEncode for bool {
 }
 
 impl NvEncode for u32 {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>
-    {
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
-        let v = unsafe {
-            sys::nvlist_add_uint32(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self)
-        };
+        let v = unsafe { sys::nvlist_add_uint32(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -72,8 +70,7 @@ impl NvEncode for u32 {
 }
 
 impl NvEncode for ffi::CStr {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>
-    {
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe {
             sys::nvlist_add_string(nv.as_mut_ptr(), name.as_ref().as_ptr(), self.as_ptr())
@@ -87,15 +84,18 @@ impl NvEncode for ffi::CStr {
 }
 
 impl NvEncode for NvListRef {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>
-    {
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe {
-            sys::nvlist_add_nvlist(nv.as_mut_ptr(), name.as_ref().as_ptr(), self.as_ptr() as *mut _)
+            sys::nvlist_add_nvlist(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut _,
+            )
         };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
-            } else {
+        } else {
             Ok(())
         }
     }
@@ -103,14 +103,14 @@ impl NvEncode for NvListRef {
 
 pub enum NvEncoding {
     Native,
-    Xdr
+    Xdr,
 }
 
 impl NvEncoding {
     fn as_raw(&self) -> c_int {
         match self {
             &NvEncoding::Native => sys::NV_ENCODE_NATIVE,
-            &NvEncoding::Xdr => sys::NV_ENCODE_XDR
+            &NvEncoding::Xdr => sys::NV_ENCODE_XDR,
         }
     }
 }
@@ -135,20 +135,18 @@ impl NvList {
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            Ok(unsafe { Self::from_ptr(n) }) 
+            Ok(unsafe { Self::from_ptr(n) })
         }
     }
 
     /// Create a new `NvList` with the `NV_UNIQUE_NAME` constraint
     pub fn new_unqiue_names() -> io::Result<Self> {
         let mut n = ptr::null_mut();
-        let v = unsafe {
-            sys::nvlist_alloc(&mut n, sys::NV_UNIQUE_NAME, 0)
-        };
+        let v = unsafe { sys::nvlist_alloc(&mut n, sys::NV_UNIQUE_NAME, 0) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            Ok(unsafe { Self::from_ptr(n) }) 
+            Ok(unsafe { Self::from_ptr(n) })
         }
     }
 
@@ -170,32 +168,25 @@ impl Clone for NvList {
 }
 
 impl NvListRef {
-    pub unsafe fn from_mut_ptr<'a>(v: *mut sys::nvlist) -> &'a mut Self
-    {
+    pub unsafe fn from_mut_ptr<'a>(v: *mut sys::nvlist) -> &'a mut Self {
         std::mem::transmute::<*mut sys::nvlist, &mut Self>(v)
     }
 
-    pub unsafe fn from_ptr<'a>(v: *const sys::nvlist) -> &'a Self
-    {
+    pub unsafe fn from_ptr<'a>(v: *const sys::nvlist) -> &'a Self {
         std::mem::transmute::<*const sys::nvlist, &Self>(v)
     }
 
-    pub fn as_mut_ptr(&mut self) -> *mut sys::nvlist
-    {
+    pub fn as_mut_ptr(&mut self) -> *mut sys::nvlist {
         unsafe { std::mem::transmute::<&mut NvListRef, *mut sys::nvlist>(self) }
     }
 
-    pub fn as_ptr(&self) -> *const sys::nvlist
-    {
+    pub fn as_ptr(&self) -> *const sys::nvlist {
         unsafe { std::mem::transmute::<&NvListRef, *const sys::nvlist>(self) }
     }
 
-    pub fn encoded_size(&self, encoding: NvEncoding) -> io::Result<usize>
-    {
+    pub fn encoded_size(&self, encoding: NvEncoding) -> io::Result<usize> {
         let mut l = 0usize;
-        let v = unsafe {
-            sys::nvlist_size(self.as_ptr() as *mut _, &mut l, encoding.as_raw())
-        };
+        let v = unsafe { sys::nvlist_size(self.as_ptr() as *mut _, &mut l, encoding.as_raw()) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -208,8 +199,7 @@ impl NvListRef {
         v != sys::boolean::B_FALSE
     }
 
-    pub fn add_boolean<S: CStrArgument>(&mut self, name: S) -> io::Result<()>
-    {
+    pub fn add_boolean<S: CStrArgument>(&mut self, name: S) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe { sys::nvlist_add_boolean(self.as_mut_ptr(), name.as_ref().as_ptr()) };
         if v != 0 {
@@ -220,7 +210,7 @@ impl NvListRef {
     }
 
     pub fn first(&self) -> Option<&NvPair> {
-        let np = unsafe { sys::nvlist_next_nvpair(self.as_ptr() as *mut _, ptr::null_mut()) };  
+        let np = unsafe { sys::nvlist_next_nvpair(self.as_ptr() as *mut _, ptr::null_mut()) };
         if np.is_null() {
             None
         } else {
@@ -235,8 +225,7 @@ impl NvListRef {
         }
     }
 
-    pub fn exists<S: CStrArgument>(&self, name: S) -> bool
-    {
+    pub fn exists<S: CStrArgument>(&self, name: S) -> bool {
         let name = name.into_cstr();
         let v = unsafe { sys::nvlist_exists(self.as_ptr() as *mut _, name.as_ref().as_ptr()) };
         v != sys::boolean::B_FALSE
@@ -258,11 +247,12 @@ impl NvListRef {
     }
     */
 
-    pub fn lookup<S: CStrArgument>(&self, name: S) -> io::Result<&NvPair>
-    {
+    pub fn lookup<S: CStrArgument>(&self, name: S) -> io::Result<&NvPair> {
         let name = name.into_cstr();
         let mut n = ptr::null_mut();
-        let v = unsafe { sys::nvlist_lookup_nvpair(self.as_ptr() as *mut _, name.as_ref().as_ptr(), &mut n) };
+        let v = unsafe {
+            sys::nvlist_lookup_nvpair(self.as_ptr() as *mut _, name.as_ref().as_ptr(), &mut n)
+        };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -352,6 +342,37 @@ impl NvListRef {
         }
     }
 
+    pub fn lookup_uint64_array<S: CStrArgument>(&self, name: S) -> io::Result<Vec<u64>> {
+        let name = name.into_cstr();
+
+        let mut n = ptr::null_mut();
+
+        let mut len: c_uint;
+
+        let v = unsafe {
+            len = mem::uninitialized();
+            nv_sys::nvlist_lookup_uint64_array(
+                self.as_ptr() as *mut _,
+                name.as_ref().as_ptr(),
+                &mut n,
+                &mut len,
+            )
+        };
+
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            let r = unsafe {
+                ::std::slice::from_raw_parts(n, len as usize)
+                    .iter()
+                    .map(|x| *x)
+                    .collect()
+            };
+
+            Ok(r)
+        }
+    }
+
     pub fn try_to_owned(&self) -> io::Result<NvList> {
         let mut n = NvList(ptr::null_mut());
         let v = unsafe { sys::nvlist_dup(self.as_ptr() as *mut _, &mut n.0, 0) };
@@ -365,14 +386,14 @@ impl NvListRef {
 
 pub struct NvListIter<'a> {
     parent: &'a NvListRef,
-    pos: *mut sys::nvpair, 
+    pos: *mut sys::nvpair,
 }
 
 impl<'a> Iterator for NvListIter<'a> {
     type Item = &'a NvPair;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let np = unsafe { sys::nvlist_next_nvpair(self.parent.as_ptr() as *mut _, self.pos) };  
+        let np = unsafe { sys::nvlist_next_nvpair(self.parent.as_ptr() as *mut _, self.pos) };
         self.pos = np;
         if np.is_null() {
             None
@@ -388,8 +409,7 @@ impl ForeignTypeRef for NvPair {
 }
 
 impl NvPair {
-    pub fn name(&self) -> &ffi::CStr
-    {
+    pub fn name(&self) -> &ffi::CStr {
         unsafe { ffi::CStr::from_ptr(sys::nvpair_name(self.as_ptr())) }
     }
 
