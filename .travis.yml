@@ -9,6 +9,7 @@ addons:
             - sourceline: "ppa:zfs-native/daily"
         packages:
             - ubuntu-zfs
+            - libzfs-dev
 install:
     - cargo build --package nvpair-sys --verbose
     - cargo build --package nvpair --verbose
@@ -19,3 +20,9 @@ cache: cargo
 matrix:
     allow_failues:
         - rust: nightly
+
+branches:
+  only:
+    - staging
+    - trying
+    - master
