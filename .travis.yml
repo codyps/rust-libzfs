@@ -9,6 +9,7 @@ addons:
             - sourceline: "ppa:zfs-native/daily"
         packages:
             - ubuntu-zfs
+            - libzfs-dev
 install:
     - cargo build --package nvpair-sys --verbose
     - cargo build --package nvpair --verbose
