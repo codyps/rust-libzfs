@@ -36,8 +36,19 @@ pub enum ZfsError {
     },
 }
 
+pub struct ZfsList {
+    out: Vec<u8>,
+}
+
+impl ZfsList {
+    pub fn iter(&self) -> impl Iterator<Item=&[u8]>
+    {
+        
+    }
+}
+
 impl Zfs {
-    pub fn list(&self) -> Result<impl Iterator<Item=impl Iterator<Item=&[u8]>>, ZfsError>
+    pub fn list(&self) -> Result<impl Iterator<Item=&[u8]>, ZfsError>
     {
         // zfs list -H
         // '-s <prop>' sort by property (multiple allowed)
@@ -59,7 +70,7 @@ impl Zfs {
         println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
         println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
 
-        Ok(output.stdout.into_iter().split(|&x| x==b'\n').map(|x| x.split(|&y| y==b'\t')))
+        Ok(output.stdout.into_iter().split(|&x| x==b'\n'))
     }
 
     // delete
