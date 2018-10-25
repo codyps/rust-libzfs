@@ -9,6 +9,6 @@ description = "Work with nvlist and nvpair (using nvpair-sys, libnvpair.so)"
 license = "Apache-2.0 OR MIT"
 
 [dependencies]
-cstr-argument = "0.0"
+cstr-argument = "0.1"
 nvpair-sys = { path = "../nvpair-sys", version = "0.1" }
 foreign-types = "0.3"
