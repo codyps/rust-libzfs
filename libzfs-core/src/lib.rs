@@ -1,4 +1,4 @@
-extern crate libzfs_core_sys as sys;
+extern crate zfs_core_sys as sys;
 extern crate nvpair;
 extern crate cstr_argument;
 extern crate foreign_types;
