@@ -1,3 +1,3 @@
 
 [workspace]
-members = ['libzfs-core-sys', 'libzfs-core', 'nvpair-sys', 'nvpair']
+members = ['zfs-core-sys', 'zfs-core', 'nvpair-sys', 'nvpair']

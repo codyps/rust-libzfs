@@ -1,9 +1,9 @@
 [package]
-name = "libzfs-core-sys"
+name = "zfs-core-sys"
 version = "0.1.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 include = ["**/*.rs", "Cargo.toml"]
-documentation = "https://docs.rs/libzfs-core-sys"
+documentation = "https://docs.rs/zfs-core-sys"
 repository = "https://github.com/jmesmon/rust-libzfs"
 description = "Bindings to libzfs_core (lzc)"
 license = "Apache-2.0 OR MIT"
