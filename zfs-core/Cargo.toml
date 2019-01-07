@@ -13,3 +13,6 @@ nvpair = { path = "../nvpair", version = "0.3" }
 zfs-core-sys = { path = "../zfs-core-sys", version = "0.1" }
 cstr-argument = "0.1"
 foreign-types = "0.3"
+
+[badges]
+travis-ci = { repository = "jmesmon/rust-libzfs" }
