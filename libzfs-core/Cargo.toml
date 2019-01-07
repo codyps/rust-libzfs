@@ -1,13 +1,13 @@
 [package]
-name = "libzfs-core"
+name = "zfs-core"
 version = "0.2.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 include = ["**/*.rs", "Cargo.toml"]
-documentation = "https://docs.rs/libzfs-core"
+documentation = "https://docs.rs/zfs-core"
 repository = "https://github.com/jmesmon/rust-libzfs"
 
 [dependencies]
 nvpair = { path = "../nvpair", version = "0.3" }
-libzfs-core-sys = { path = "../libzfs-core-sys", version = "0.1" }
+zfs-core-sys = { path = "../libzfs-core-sys", version = "0.1" }
 cstr-argument = "0.1"
 foreign-types = "0.3"
