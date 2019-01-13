@@ -10,6 +10,7 @@ use std::io;
 use std::os::raw::c_int;
 use std::ptr;
 
+#[derive(Debug)]
 pub enum NvData<'a> {
     Unknown,
     Bool,
@@ -271,6 +272,17 @@ impl NvListRef {
     }
 }
 
+impl std::fmt::Debug for NvListRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_map()
+            .entries(
+                self.iter()
+                    .map(|&ref pair| (pair.name().to_owned().into_string().unwrap(), pair.data())),
+            )
+            .finish()
+    }
+}
+
 pub struct NvListIter<'a> {
     parent: &'a NvListRef,
     pos: *mut sys::nvpair,
@@ -417,6 +429,15 @@ impl NvPair {
             }
             _ => NvData::Unknown,
         }
+    }
+}
+
+impl std::fmt::Debug for NvPair {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_tuple("NvPair")
+            .field(&self.name())
+            .field(&self.data())
+            .finish()
     }
 }
 
