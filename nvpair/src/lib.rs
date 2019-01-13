@@ -10,20 +10,21 @@ use std::io;
 use std::os::raw::c_int;
 use std::ptr;
 
-pub enum NvData {
+pub enum NvData<'a> {
+    Unknown,
     Bool,
     BoolV(bool),
     Byte(u8),
     Int8(i8),
-    Uint8(i8),
+    Uint8(u8),
     Int16(i16),
     Uint16(u16),
     Int32(i32),
     Uint32(u32),
     Int64(i64),
     Uint64(u64),
-    String(ffi::CString),
-    NvListRef(NvList),
+    Str(&'a ffi::CStr),
+    NvListRef(&'a NvListRef),
     // TODO: arrays
     // hrtime
     // double
@@ -297,5 +298,144 @@ impl ForeignTypeRef for NvPair {
 impl NvPair {
     pub fn name(&self) -> &ffi::CStr {
         unsafe { ffi::CStr::from_ptr(sys::nvpair_name(self.as_ptr())) }
+    }
+
+    pub fn data(&self) -> NvData {
+        let data_type = unsafe { sys::nvpair_type(self.as_ptr()) };
+
+        match data_type {
+            sys::data_type_t::DATA_TYPE_BOOLEAN => {
+                NvData::Bool
+            }
+            sys::data_type_t::DATA_TYPE_BOOLEAN_VALUE => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_boolean_value(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::BoolV(v == sys::boolean::B_TRUE)
+            }
+            sys::data_type_t::DATA_TYPE_BYTE => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_byte(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Byte(v)
+            }
+            sys::data_type_t::DATA_TYPE_INT8 => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_int8(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Int8(v)
+            }
+            sys::data_type_t::DATA_TYPE_UINT8 => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_uint8(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Uint8(v)
+            }
+            sys::data_type_t::DATA_TYPE_INT16 => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_int16(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Int16(v)
+            }
+            sys::data_type_t::DATA_TYPE_UINT16 => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_uint16(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Uint16(v)
+            }
+            sys::data_type_t::DATA_TYPE_INT32 => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_int32(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Int32(v)
+            }
+            sys::data_type_t::DATA_TYPE_UINT32 => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_uint32(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Uint32(v)
+            }
+            sys::data_type_t::DATA_TYPE_INT64 => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_int64(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Int64(v)
+            }
+            sys::data_type_t::DATA_TYPE_UINT64 => {
+                let v = unsafe {
+                    let mut v = std::mem::uninitialized();
+                    sys::nvpair_value_uint64(self.as_ptr(), &mut v);
+                    v
+                };
+
+                NvData::Uint64(v)
+            }
+            sys::data_type_t::DATA_TYPE_STRING => {
+                let s = unsafe {
+                    let mut n = std::mem::uninitialized();
+                    sys::nvpair_value_string(self.as_ptr(), &mut n);
+                    ffi::CStr::from_ptr(n)
+                };
+
+                NvData::Str(s)
+            }
+            sys::data_type_t::DATA_TYPE_NVLIST => {
+                let l = unsafe {
+                    let mut l = std::mem::uninitialized();
+                    sys::nvpair_value_nvlist(self.as_ptr(), &mut l);
+                    NvListRef::from_ptr(l)
+                };
+
+                NvData::NvListRef(l)
+            }
+            _ => NvData::Unknown,
+        }
+    }
+}
+
+impl<'a> NvData<'a> {
+    pub fn as_str(&self) -> Option<&ffi::CStr> {
+        match self {
+            NvData::Str(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<String> {
+        self.as_str()?.to_owned().into_string().ok()
+    }
+
+    pub fn as_list(&self) -> Option<&NvListRef> {
+        match self {
+            NvData::NvListRef(c) => Some(c),
+            _ => None,
+        }
     }
 }
