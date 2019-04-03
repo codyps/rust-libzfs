@@ -69,6 +69,26 @@ fn insert() {
 
     let _b1 = a.lookup("bool1").expect("lookup of bool1 failed");
 
+    match _b1.data() {
+        nvpair::NvData::BoolV(v) => {
+            assert!(v == true);
+        }
+        _ => {
+            panic!("Unexpected type");
+        }
+    }
+
+    let _u1 = a.lookup("u32").expect("lookup of u32 failed");
+
+    match _u1.data() {
+        nvpair::NvData::Uint32(v) => {
+            assert!(v == 6u32);
+        }
+        _ => {
+            panic!("Unexpected type");
+        }
+    }
+
     //a.remove(&b1).expect("remove of b1 failed");
 
     // FIXME: use option wrapper
