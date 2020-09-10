@@ -15,7 +15,7 @@ base="$1"
 set -x
 truncate --size 2G "test-pool-$base.img"
 zpool create "$base" "$PWD/test-pool-$base.img"
-zfs allow -uld "$SUDO_USER" create "$base"
+zfs allow -uld "$SUDO_USER" mount,create "$base"
 set +x
 
 echo "export ZFS_TEST_BASE=$base"
