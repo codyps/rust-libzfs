@@ -4,7 +4,9 @@ extern crate nvpair;
 fn test_fsname_base(extra: &str) -> String
 {
     let mut b = std::env::var("ZFS_TEST_BASE").expect("Set ZFS_TEST_BASE to a suitable zfs fspath to run tests on");
+    b.push_str("/");
     b.push_str(module_path!());
+    b.push_str("-");
     b.push_str(extra);
     b
 }
@@ -20,7 +22,7 @@ fn create() {
 
     let z = zfs::Zfs::new().unwrap();
     let nv = nvpair::NvList::new().unwrap();
-    z.create(b, zfs::DataSetType::Zfs, &nv).unwrap();
+    z.create(&b, zfs::DataSetType::Zfs, &nv).expect(&format!("create {:?} failed", b))
 
     // XXX: libzfs_core lacks a destroy call at the moment (ZFS_IOC_DESTROY)
 }
