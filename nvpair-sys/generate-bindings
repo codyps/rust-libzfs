@@ -13,6 +13,7 @@ bindgen "$d/wrapper.h" \
 	--whitelist-type 'nvlist.*' \
 	--whitelist-type 'hrtime.*' \
 	--whitelist-type 'data_type_.*' \
+	--whitelist-type 'size_t' \
 	--constified-enum-module '.*' \
 	--blacklist-type 'va_list' \
 	--blacklist-type '_IO_FILE' \

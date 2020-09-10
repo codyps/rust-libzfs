@@ -45,9 +45,9 @@ impl NvEncode for bool {
                 nv.as_mut_ptr(),
                 name.as_ref().as_ptr(),
                 if *self {
-                    sys::boolean::B_TRUE
+                    sys::boolean_t::B_TRUE
                 } else {
-                    sys::boolean::B_FALSE
+                    sys::boolean_t::B_FALSE
                 },
             )
         };
@@ -186,8 +186,8 @@ impl NvListRef {
         unsafe { std::mem::transmute::<&NvListRef, *const sys::nvlist>(self) }
     }
 
-    pub fn encoded_size(&self, encoding: NvEncoding) -> io::Result<usize> {
-        let mut l = 0usize;
+    pub fn encoded_size(&self, encoding: NvEncoding) -> io::Result<u64> {
+        let mut l = 0u64;
         let v = unsafe { sys::nvlist_size(self.as_ptr() as *mut _, &mut l, encoding.as_raw()) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
@@ -198,7 +198,7 @@ impl NvListRef {
 
     pub fn is_empty(&self) -> bool {
         let v = unsafe { sys::nvlist_empty(self.as_ptr() as *mut _) };
-        v != sys::boolean::B_FALSE
+        v != sys::boolean_t::B_FALSE
     }
 
     pub fn add_boolean<S: CStrArgument>(&mut self, name: S) -> io::Result<()> {
@@ -230,7 +230,7 @@ impl NvListRef {
     pub fn exists<S: CStrArgument>(&self, name: S) -> bool {
         let name = name.into_cstr();
         let v = unsafe { sys::nvlist_exists(self.as_ptr() as *mut _, name.as_ref().as_ptr()) };
-        v != sys::boolean::B_FALSE
+        v != sys::boolean_t::B_FALSE
     }
 
     /*
@@ -327,7 +327,7 @@ impl NvPair {
                     v.assume_init()
                 };
 
-                NvData::BoolV(v == sys::boolean::B_TRUE)
+                NvData::BoolV(v == sys::boolean_t::B_TRUE)
             }
             sys::data_type_t::DATA_TYPE_BYTE => {
                 let v = unsafe {
