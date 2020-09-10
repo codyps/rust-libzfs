@@ -9,6 +9,7 @@ use std::ffi;
 use std::io;
 use std::os::raw::c_int;
 use std::ptr;
+use std::mem::MaybeUninit;
 
 #[derive(Debug)]
 pub enum NvData<'a> {
@@ -321,108 +322,108 @@ impl NvPair {
             }
             sys::data_type_t::DATA_TYPE_BOOLEAN_VALUE => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_boolean_value(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_boolean_value(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::BoolV(v == sys::boolean::B_TRUE)
             }
             sys::data_type_t::DATA_TYPE_BYTE => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_byte(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_byte(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Byte(v)
             }
             sys::data_type_t::DATA_TYPE_INT8 => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_int8(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_int8(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Int8(v)
             }
             sys::data_type_t::DATA_TYPE_UINT8 => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_uint8(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_uint8(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Uint8(v)
             }
             sys::data_type_t::DATA_TYPE_INT16 => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_int16(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_int16(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Int16(v)
             }
             sys::data_type_t::DATA_TYPE_UINT16 => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_uint16(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_uint16(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Uint16(v)
             }
             sys::data_type_t::DATA_TYPE_INT32 => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_int32(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_int32(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Int32(v)
             }
             sys::data_type_t::DATA_TYPE_UINT32 => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_uint32(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_uint32(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Uint32(v)
             }
             sys::data_type_t::DATA_TYPE_INT64 => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_int64(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_int64(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Int64(v)
             }
             sys::data_type_t::DATA_TYPE_UINT64 => {
                 let v = unsafe {
-                    let mut v = std::mem::uninitialized();
-                    sys::nvpair_value_uint64(self.as_ptr(), &mut v);
-                    v
+                    let mut v = MaybeUninit::uninit();
+                    sys::nvpair_value_uint64(self.as_ptr(), v.as_mut_ptr());
+                    v.assume_init()
                 };
 
                 NvData::Uint64(v)
             }
             sys::data_type_t::DATA_TYPE_STRING => {
                 let s = unsafe {
-                    let mut n = std::mem::uninitialized();
-                    sys::nvpair_value_string(self.as_ptr(), &mut n);
-                    ffi::CStr::from_ptr(n)
+                    let mut n = MaybeUninit::uninit();
+                    sys::nvpair_value_string(self.as_ptr(), n.as_mut_ptr());
+                    ffi::CStr::from_ptr(n.assume_init())
                 };
 
                 NvData::Str(s)
             }
             sys::data_type_t::DATA_TYPE_NVLIST => {
                 let l = unsafe {
-                    let mut l = std::mem::uninitialized();
-                    sys::nvpair_value_nvlist(self.as_ptr(), &mut l);
-                    NvListRef::from_ptr(l)
+                    let mut l = MaybeUninit::uninit();
+                    sys::nvpair_value_nvlist(self.as_ptr(), l.as_mut_ptr());
+                    NvListRef::from_ptr(l.assume_init())
                 };
 
                 NvData::NvListRef(l)
