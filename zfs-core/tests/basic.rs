@@ -1,4 +1,4 @@
-extern crate libzfs_core as zfs;
+extern crate zfs_core as zfs;
 extern crate nvpair;
 
 fn test_fsname_base(extra: &str) -> String
