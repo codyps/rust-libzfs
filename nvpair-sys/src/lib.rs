@@ -2,7 +2,6 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-
 pub enum __va_list_tag {}
 
 // TODO: get bindgen to emit these defines

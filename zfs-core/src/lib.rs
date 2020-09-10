@@ -55,7 +55,7 @@ impl Zfs {
     {
         let name = name.into_cstr();
         let v = unsafe {
-            sys::lzc_create(name.as_ref().as_ptr(), dataset_type.as_raw(), props.as_ptr() as *mut _)
+            sys::lzc_create(name.as_ref().as_ptr(), dataset_type.as_raw(), props.as_ptr() as *mut _, ptr::null_mut(), 0)
         };
     
         if v != 0 {
