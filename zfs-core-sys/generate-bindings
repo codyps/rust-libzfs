@@ -8,6 +8,9 @@ bindgen "$d/wrapper.h" \
 	--whitelist-type 'dmu_replay_record' \
 	--whitelist-type 'uint_t' \
 	--whitelist-type 'uchar_t' \
+	--whitelist-type 'size_t' \
+	--whitelist-type 'pool_trim_func.*' \
+	--whitelist-type 'pool_initialize_func.*' \
 	--constified-enum-module '.*' \
 	--opaque-type dmu_replay_record \
 	--blacklist-type 'va_list' \
