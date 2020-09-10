@@ -7,6 +7,8 @@ name: ci
 
 jobs:
   ci:
+    env:
+      ZFS_TEST_BASE: p1
     runs-on: ubuntu-20.04
 
     steps:
@@ -15,6 +17,8 @@ jobs:
       - name: Install dependencies
         run: sudo apt install libzfslinux-dev zfsutils-linux
 
+      - name: Setup test pool
+        run: sudo ./zfs-core/test-prepare "${ZFS_TEST_BASE}"
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
