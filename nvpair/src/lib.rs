@@ -118,12 +118,11 @@ impl NvEncoding {
 }
 
 foreign_type! {
-    type CType = sys::nvlist;
-    fn drop = sys::nvlist_free;
     /// An `NvList`
-    pub struct NvList;
-    /// A borrowed `NvList`
-    pub struct NvListRef;
+    pub unsafe type NvList {
+        type CType = sys::nvlist;
+        fn drop = sys::nvlist_free;
+    }
 }
 
 impl NvList {
@@ -154,7 +153,7 @@ impl NvList {
 
     pub fn try_clone(&self) -> io::Result<Self> {
         let mut n = ptr::null_mut();
-        let v = unsafe { sys::nvlist_dup(self.0, &mut n, 0) };
+        let v = unsafe { sys::nvlist_dup(self.as_ptr(), &mut n, 0) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -263,12 +262,12 @@ impl NvListRef {
     }
 
     pub fn try_to_owned(&self) -> io::Result<NvList> {
-        let mut n = NvList(ptr::null_mut());
-        let v = unsafe { sys::nvlist_dup(self.as_ptr() as *mut _, &mut n.0, 0) };
+        let mut n = MaybeUninit::uninit();
+        let v = unsafe { sys::nvlist_dup(self.as_ptr() as *mut _, n.as_mut_ptr(), 0) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            Ok(n)
+            Ok(unsafe { NvList::from_ptr(n.assume_init())})
         }
     }
 
@@ -402,7 +401,7 @@ impl<'a> Iterator for NvListIter<'a> {
 }
 
 pub struct NvPair(Opaque);
-impl ForeignTypeRef for NvPair {
+unsafe impl ForeignTypeRef for NvPair {
     type CType = sys::nvpair;
 }
 
