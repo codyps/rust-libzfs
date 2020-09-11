@@ -1,4 +1,5 @@
-#! /bin/sh
+#! /bin/bash
+set -euf -o pipefail
 
 if [ $# -ne 1 ]; then
 	>& 2 echo "usage: $(basename $0) pool-name"
@@ -13,7 +14,8 @@ fi
 base="$1"
 
 set -x
-truncate --size 2G "test-pool-$base.img"
+#truncate --size 2G "test-pool-$base.img"
+dd if=/dev/zero of=test-pool-$base.img bs=1 count=0 seek=$((1024*1024*1024*2))
 zpool create "$base" "$PWD/test-pool-$base.img"
 zfs allow -uld "$SUDO_USER" mount,create "$base"
 set +x
