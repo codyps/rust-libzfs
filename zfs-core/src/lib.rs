@@ -65,6 +65,27 @@ impl Zfs {
         }
     }
 
+    pub fn destroy<S: CStrArgument>(&self, name: S) -> io::Result<()>
+    {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::lzc_destroy(name.as_ref().as_ptr())
+        };
+    
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn exists<S: CStrArgument>(&self, name: S) -> bool
+    {
+        let name = name.into_cstr();
+        let v = unsafe { sys::lzc_exists(name.as_ref().as_ptr()) };
+        v != 0
+    }
+
     // TODO: this is a fairly raw interface, consider abstracting (or at least adding some
     // restrictions on the NvLists).
     pub fn snapshot(&self, snaps: &NvList, props: &NvList) -> Result<(), (io::Error, NvList)>
