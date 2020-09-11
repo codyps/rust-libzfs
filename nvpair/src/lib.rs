@@ -7,9 +7,9 @@ use cstr_argument::CStrArgument;
 use foreign_types::{ForeignType, ForeignTypeRef, Opaque};
 use std::ffi;
 use std::io;
+use std::mem::MaybeUninit;
 use std::os::raw::c_int;
 use std::ptr;
-use std::mem::MaybeUninit;
 
 #[derive(Debug)]
 pub enum NvData<'a> {
@@ -267,16 +267,20 @@ impl NvListRef {
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            Ok(unsafe { NvList::from_ptr(n.assume_init())})
+            Ok(unsafe { NvList::from_ptr(n.assume_init()) })
         }
     }
 
-   pub fn lookup_nvlist<S: CStrArgument>(&self, name: S) -> io::Result<NvList> {
+    pub fn lookup_nvlist<S: CStrArgument>(&self, name: S) -> io::Result<NvList> {
         let name = name.into_cstr();
 
         let mut n = MaybeUninit::uninit();
         let v = unsafe {
-            sys::nvlist_lookup_nvlist(self.as_ptr() as *mut _, name.as_ref().as_ptr(), n.as_mut_ptr())
+            sys::nvlist_lookup_nvlist(
+                self.as_ptr() as *mut _,
+                name.as_ref().as_ptr(),
+                n.as_mut_ptr(),
+            )
         };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
@@ -290,7 +294,11 @@ impl NvListRef {
         let name = name.into_cstr();
         let mut n = MaybeUninit::uninit();
         let v = unsafe {
-            sys::nvlist_lookup_string(self.as_ptr() as *mut _, name.as_ref().as_ptr(), n.as_mut_ptr())
+            sys::nvlist_lookup_string(
+                self.as_ptr() as *mut _,
+                name.as_ref().as_ptr(),
+                n.as_mut_ptr(),
+            )
         };
 
         if v != 0 {
@@ -305,7 +313,11 @@ impl NvListRef {
         let name = name.into_cstr();
         let mut n = MaybeUninit::uninit();
         let v = unsafe {
-            sys::nvlist_lookup_uint64(self.as_ptr() as *mut _, name.as_ref().as_ptr(), n.as_mut_ptr())
+            sys::nvlist_lookup_uint64(
+                self.as_ptr() as *mut _,
+                name.as_ref().as_ptr(),
+                n.as_mut_ptr(),
+            )
         };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
@@ -313,7 +325,6 @@ impl NvListRef {
             Ok(unsafe { n.assume_init() })
         }
     }
-
 
     pub fn lookup_nvlist_array<S: CStrArgument>(&self, name: S) -> io::Result<Vec<NvList>> {
         let name = name.into_cstr();
@@ -367,7 +378,7 @@ impl NvListRef {
 
             Ok(r)
         }
-    } 
+    }
 }
 
 impl std::fmt::Debug for NvListRef {
@@ -414,9 +425,7 @@ impl NvPair {
         let data_type = unsafe { sys::nvpair_type(self.as_ptr()) };
 
         match data_type {
-            sys::data_type_t::DATA_TYPE_BOOLEAN => {
-                NvData::Bool
-            }
+            sys::data_type_t::DATA_TYPE_BOOLEAN => NvData::Bool,
             sys::data_type_t::DATA_TYPE_BOOLEAN_VALUE => {
                 let v = unsafe {
                     let mut v = MaybeUninit::uninit();

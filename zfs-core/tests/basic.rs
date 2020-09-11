@@ -1,13 +1,13 @@
-extern crate zfs_core as zfs;
-extern crate rand;
 extern crate nvpair;
+extern crate rand;
+extern crate zfs_core as zfs;
 
-use std::io;
-use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+use std::io;
 
 struct TempFs {
-    path: String
+    path: String,
 }
 
 // How many times should we (re)try finding an unused random name? It should be
@@ -26,9 +26,7 @@ impl TempFs {
 
         let rng = thread_rng();
         for _ in 0..NUM_RETRIES {
-            let suffix: String = rng.sample_iter(Alphanumeric)
-                .take(NUM_RAND_CHARS)
-                .collect();
+            let suffix: String = rng.sample_iter(Alphanumeric).take(NUM_RAND_CHARS).collect();
 
             let mut path = base.to_owned();
             path.push_str("/");
@@ -39,15 +37,17 @@ impl TempFs {
             }
             path.push_str(&suffix);
 
-            match z.create(&path , zfs::DataSetType::Zfs, &nv) {
+            match z.create(&path, zfs::DataSetType::Zfs, &nv) {
                 Ok(_) => return Ok(TempFs { path }),
-                Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {},
+                Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {}
                 Err(e) => return Err(e),
-
             }
         }
 
-        Err(io::Error::new(io::ErrorKind::AlreadyExists, "too many temporary filesystems already exist"))
+        Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "too many temporary filesystems already exist",
+        ))
     }
 
     pub fn new(prefix: &str) -> io::Result<TempFs> {
@@ -86,7 +86,8 @@ fn create_destroy() {
 
     let z = zfs::Zfs::new().unwrap();
     let nv = nvpair::NvList::new().unwrap();
-    z.create(&b, zfs::DataSetType::Zfs, &nv).expect(&format!("create {:?} failed", b));
+    z.create(&b, zfs::DataSetType::Zfs, &nv)
+        .expect(&format!("create {:?} failed", b));
 
     assert_eq!(z.exists(&b), true);
     let mut b2 = b.clone();

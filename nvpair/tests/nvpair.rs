@@ -2,22 +2,19 @@ extern crate nvpair;
 use std::ffi::{CStr, CString};
 
 #[test]
-fn new()
-{
+fn new() {
     let a = nvpair::NvList::new().unwrap();
     assert!(a.is_empty());
 }
 
 #[test]
-fn size_empty_native()
-{
+fn size_empty_native() {
     let a = nvpair::NvList::new().unwrap();
     assert_eq!(a.encoded_size(nvpair::NvEncoding::Native).unwrap(), 16);
 }
 
 #[test]
-fn add_boolean()
-{
+fn add_boolean() {
     let mut a = nvpair::NvList::new().unwrap();
     a.add_boolean(&b"hi\0"[..]).unwrap();
     assert_eq!(a.encoded_size(nvpair::NvEncoding::Native).unwrap(), 40);
@@ -29,9 +26,8 @@ fn add_boolean()
 }
 
 #[test]
-fn iter()
-{
-    let ns = [ "one", "two", "three" ];
+fn iter() {
+    let ns = ["one", "two", "three"];
     let mut a = nvpair::NvList::new().unwrap();
 
     for n in ns.iter() {
@@ -51,7 +47,7 @@ fn iter()
 
 #[test]
 fn lookup() {
-    let ns = [ "one", "two", "three" ];
+    let ns = ["one", "two", "three"];
     let mut a = nvpair::NvList::new_unqiue_names().unwrap();
 
     for n in ns.iter() {
