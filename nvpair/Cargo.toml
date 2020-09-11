@@ -1,6 +1,6 @@
 [package]
 name = "nvpair"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 include = ["**/*.rs", "Cargo.toml"]
 documentation = "https://docs.rs/nvpair"
@@ -11,7 +11,7 @@ edition = "2018"
 
 [dependencies]
 cstr-argument = "0.1"
-nvpair-sys = { path = "../nvpair-sys", version = "0.1" }
+nvpair-sys = { path = "../nvpair-sys", version = "0.4.0" }
 foreign-types = "0.5.0"
 
 [badges]
