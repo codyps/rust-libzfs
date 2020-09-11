@@ -1,6 +1,7 @@
 [package]
 name = "nvpair-sys"
 version = "0.1.0"
+edition = "2018"
 authors = ["Cody P Schafer <dev@codyps.com>"]
 include = ["**/*.rs", "Cargo.toml"]
 description = "Bindings to libnvpair.so (nvpair & nvlist)"

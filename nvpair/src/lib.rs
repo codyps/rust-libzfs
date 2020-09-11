@@ -1,15 +1,11 @@
-extern crate cstr_argument;
-extern crate nvpair_sys as sys;
-#[macro_use]
-extern crate foreign_types;
+#![warn(missing_debug_implementations, rust_2018_idioms)]
 
 use cstr_argument::CStrArgument;
-use foreign_types::{ForeignType, ForeignTypeRef, Opaque};
-use std::ffi;
-use std::io;
+use foreign_types::{foreign_type, ForeignType, ForeignTypeRef, Opaque};
+use nvpair_sys as sys;
 use std::mem::MaybeUninit;
 use std::os::raw::c_int;
-use std::ptr;
+use std::{ffi, fmt, io, ptr};
 
 #[derive(Debug)]
 pub enum NvData<'a> {
@@ -33,7 +29,7 @@ pub enum NvData<'a> {
 }
 
 pub trait NvEncode {
-    fn insert<S: CStrArgument>(&self, S, &mut NvListRef) -> io::Result<()>;
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>;
     //fn read(NvPair &nv) -> io::Result<Self>;
 }
 
@@ -103,6 +99,7 @@ impl NvEncode for NvListRef {
     }
 }
 
+#[derive(Debug)]
 pub enum NvEncoding {
     Native,
     Xdr,
@@ -111,8 +108,8 @@ pub enum NvEncoding {
 impl NvEncoding {
     fn as_raw(&self) -> c_int {
         match self {
-            &NvEncoding::Native => sys::NV_ENCODE_NATIVE,
-            &NvEncoding::Xdr => sys::NV_ENCODE_XDR,
+            NvEncoding::Native => sys::NV_ENCODE_NATIVE,
+            NvEncoding::Xdr => sys::NV_ENCODE_XDR,
         }
     }
 }
@@ -169,12 +166,19 @@ impl Clone for NvList {
 }
 
 impl NvListRef {
+    /// # Safety
+    ///
+    /// Must be passed a valid, non-null nvlist pointer that is mutable, with a lifetime of at
+    /// least `'a`
     pub unsafe fn from_mut_ptr<'a>(v: *mut sys::nvlist) -> &'a mut Self {
-        std::mem::transmute::<*mut sys::nvlist, &mut Self>(v)
+        &mut *(v as *mut Self)
     }
 
+    /// # Safety
+    ///
+    /// Must be passed a valid, non-null nvlist pointer with a lifetime of at least `'a`.
     pub unsafe fn from_ptr<'a>(v: *const sys::nvlist) -> &'a Self {
-        std::mem::transmute::<*const sys::nvlist, &Self>(v)
+        &*(v as *const Self)
     }
 
     pub fn as_mut_ptr(&mut self) -> *mut sys::nvlist {
@@ -219,7 +223,7 @@ impl NvListRef {
         }
     }
 
-    pub fn iter(&self) -> NvListIter {
+    pub fn iter(&self) -> NvListIter<'_> {
         NvListIter {
             parent: self,
             pos: ptr::null_mut(),
@@ -369,12 +373,7 @@ impl NvListRef {
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            let r = unsafe {
-                ::std::slice::from_raw_parts(n, len as usize)
-                    .iter()
-                    .map(|x| *x)
-                    .collect()
-            };
+            let r = unsafe { ::std::slice::from_raw_parts(n, len as usize).to_vec() };
 
             Ok(r)
         }
@@ -382,11 +381,11 @@ impl NvListRef {
 }
 
 impl std::fmt::Debug for NvListRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
             .entries(
                 self.iter()
-                    .map(|&ref pair| (pair.name().to_owned().into_string().unwrap(), pair.data())),
+                    .map(|pair| (pair.name().to_owned().into_string().unwrap(), pair.data())),
             )
             .finish()
     }
@@ -395,6 +394,12 @@ impl std::fmt::Debug for NvListRef {
 pub struct NvListIter<'a> {
     parent: &'a NvListRef,
     pos: *mut sys::nvpair,
+}
+
+impl<'a> fmt::Debug for NvListIter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NvListIter").finish()
+    }
 }
 
 impl<'a> Iterator for NvListIter<'a> {
@@ -421,7 +426,7 @@ impl NvPair {
         unsafe { ffi::CStr::from_ptr(sys::nvpair_name(self.as_ptr())) }
     }
 
-    pub fn data(&self) -> NvData {
+    pub fn data(&self) -> NvData<'_> {
         let data_type = unsafe { sys::nvpair_type(self.as_ptr()) };
 
         match data_type {
@@ -540,7 +545,7 @@ impl NvPair {
 }
 
 impl std::fmt::Debug for NvPair {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("NvPair")
             .field(&self.name())
             .field(&self.data())

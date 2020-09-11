@@ -1,14 +1,11 @@
-extern crate cstr_argument;
-extern crate foreign_types;
-extern crate nvpair;
-extern crate zfs_core_sys as sys;
+#![warn(missing_debug_implementations, rust_2018_idioms)]
 
 use cstr_argument::CStrArgument;
 use foreign_types::ForeignType;
 use nvpair::NvList;
-use std::io;
 use std::marker::PhantomData;
-use std::ptr;
+use std::{fmt, io, ptr};
+use zfs_core_sys as sys;
 
 /// A handle to work with Zfs filesystems
 // Note: the Drop for this makes clone-by-copy unsafe. Could clone by just calling new().
@@ -20,6 +17,13 @@ pub struct Zfs {
     i: PhantomData<()>,
 }
 
+impl fmt::Debug for Zfs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Zfs").finish()
+    }
+}
+
+#[derive(Debug)]
 pub enum DataSetType {
     Zfs,
     Zvol,
@@ -28,8 +32,8 @@ pub enum DataSetType {
 impl DataSetType {
     fn as_raw(&self) -> ::std::os::raw::c_uint {
         match self {
-            &DataSetType::Zfs => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZFS,
-            &DataSetType::Zvol => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZVOL,
+            DataSetType::Zfs => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZFS,
+            DataSetType::Zvol => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZVOL,
         }
     }
 }
