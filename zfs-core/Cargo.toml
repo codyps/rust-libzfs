@@ -7,6 +7,7 @@ documentation = "https://docs.rs/zfs-core"
 repository = "https://github.com/jmesmon/rust-libzfs"
 description = "Rust interface to libzfs_core (lzc)"
 license = "Apache-2.0 OR MIT"
+edition = "2018"
 
 [dependencies]
 nvpair = { path = "../nvpair", version = "0.3" }

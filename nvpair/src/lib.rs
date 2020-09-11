@@ -33,7 +33,7 @@ pub enum NvData<'a> {
 }
 
 pub trait NvEncode {
-    fn insert<S: CStrArgument>(&self, S, &mut NvListRef) -> io::Result<()>;
+    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>;
     //fn read(NvPair &nv) -> io::Result<Self>;
 }
 

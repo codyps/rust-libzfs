@@ -7,6 +7,7 @@ documentation = "https://docs.rs/nvpair"
 repository = "https://github.com/jmesmon/rust-libzfs"
 description = "Work with nvlist and nvpair (using nvpair-sys, libnvpair.so)"
 license = "Apache-2.0 OR MIT"
+edition = "2018"
 
 [dependencies]
 cstr-argument = "0.1"
