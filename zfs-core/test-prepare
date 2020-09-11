@@ -20,4 +20,4 @@ zpool create "$base" "$PWD/test-pool-$base.img"
 zfs allow -uld "$SUDO_USER" mount,create "$base"
 set +x
 
-echo "export ZFS_TEST_BASE=$base"
+echo "export ZFS_TEMPFS=$base"
