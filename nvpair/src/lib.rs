@@ -108,8 +108,8 @@ pub enum NvEncoding {
 impl NvEncoding {
     fn as_raw(&self) -> c_int {
         match self {
-            &NvEncoding::Native => sys::NV_ENCODE_NATIVE,
-            &NvEncoding::Xdr => sys::NV_ENCODE_XDR,
+            NvEncoding::Native => sys::NV_ENCODE_NATIVE,
+            NvEncoding::Xdr => sys::NV_ENCODE_XDR,
         }
     }
 }
@@ -166,12 +166,19 @@ impl Clone for NvList {
 }
 
 impl NvListRef {
+    /// # Safety
+    ///
+    /// Must be passed a valid, non-null nvlist pointer that is mutable, with a lifetime of at
+    /// least `'a`
     pub unsafe fn from_mut_ptr<'a>(v: *mut sys::nvlist) -> &'a mut Self {
-        std::mem::transmute::<*mut sys::nvlist, &mut Self>(v)
+        &mut *(v as *mut Self)
     }
 
+    /// # Safety
+    ///
+    /// Must be passed a valid, non-null nvlist pointer with a lifetime of at least `'a`.
     pub unsafe fn from_ptr<'a>(v: *const sys::nvlist) -> &'a Self {
-        std::mem::transmute::<*const sys::nvlist, &Self>(v)
+        &*(v as *const Self)
     }
 
     pub fn as_mut_ptr(&mut self) -> *mut sys::nvlist {
@@ -368,9 +375,7 @@ impl NvListRef {
         } else {
             let r = unsafe {
                 ::std::slice::from_raw_parts(n, len as usize)
-                    .iter()
-                    .map(|x| *x)
-                    .collect()
+                    .to_vec()
             };
 
             Ok(r)
@@ -383,7 +388,7 @@ impl std::fmt::Debug for NvListRef {
         f.debug_map()
             .entries(
                 self.iter()
-                    .map(|&ref pair| (pair.name().to_owned().into_string().unwrap(), pair.data())),
+                    .map(|pair| (pair.name().to_owned().into_string().unwrap(), pair.data())),
             )
             .finish()
     }

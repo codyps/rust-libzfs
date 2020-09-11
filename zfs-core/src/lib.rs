@@ -33,8 +33,8 @@ pub enum DataSetType {
 impl DataSetType {
     fn as_raw(&self) -> ::std::os::raw::c_uint {
         match self {
-            &DataSetType::Zfs => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZFS,
-            &DataSetType::Zvol => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZVOL,
+            DataSetType::Zfs => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZFS,
+            DataSetType::Zvol => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZVOL,
         }
     }
 }
