@@ -8,7 +8,7 @@ name: ci
 jobs:
   ci:
     env:
-      ZFS_TEST_BASE: p1
+      ZFS_TEMPFS: tpool
     runs-on: ubuntu-20.04
 
     steps:
@@ -18,7 +18,7 @@ jobs:
         run: sudo apt install libzfslinux-dev zfsutils-linux
 
       - name: Setup test pool
-        run: sudo ./zfs-core/test-prepare "${ZFS_TEST_BASE}"
+        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
