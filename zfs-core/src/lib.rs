@@ -1,14 +1,11 @@
-extern crate cstr_argument;
-extern crate foreign_types;
-extern crate nvpair;
-extern crate zfs_core_sys as sys;
+#![warn(missing_debug_implementations, rust_2018_idioms)]
 
+use zfs_core_sys as sys;
 use cstr_argument::CStrArgument;
 use foreign_types::ForeignType;
 use nvpair::NvList;
-use std::io;
+use std::{io, ptr, fmt};
 use std::marker::PhantomData;
-use std::ptr;
 
 /// A handle to work with Zfs filesystems
 // Note: the Drop for this makes clone-by-copy unsafe. Could clone by just calling new().
@@ -20,6 +17,14 @@ pub struct Zfs {
     i: PhantomData<()>,
 }
 
+impl fmt::Debug for Zfs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Zfs")
+            .finish()
+    }
+}
+
+#[derive(Debug)]
 pub enum DataSetType {
     Zfs,
     Zvol,
