@@ -271,6 +271,104 @@ impl NvListRef {
             Ok(n)
         }
     }
+
+   pub fn lookup_nvlist<S: CStrArgument>(&self, name: S) -> io::Result<NvList> {
+        let name = name.into_cstr();
+
+        let mut n = MaybeUninit::uninit();
+        let v = unsafe {
+            sys::nvlist_lookup_nvlist(self.as_ptr() as *mut _, name.as_ref().as_ptr(), n.as_mut_ptr())
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            let r = unsafe { NvList::from_ptr(n.assume_init()) };
+            Ok(r)
+        }
+    }
+
+    pub fn lookup_string<S: CStrArgument>(&self, name: S) -> io::Result<ffi::CString> {
+        let name = name.into_cstr();
+        let mut n = MaybeUninit::uninit();
+        let v = unsafe {
+            sys::nvlist_lookup_string(self.as_ptr() as *mut _, name.as_ref().as_ptr(), n.as_mut_ptr())
+        };
+
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            let s = unsafe { ffi::CStr::from_ptr(n.assume_init()).to_owned() };
+            Ok(s)
+        }
+    }
+
+    pub fn lookup_uint64<S: CStrArgument>(&self, name: S) -> io::Result<u64> {
+        let name = name.into_cstr();
+        let mut n = MaybeUninit::uninit();
+        let v = unsafe {
+            sys::nvlist_lookup_uint64(self.as_ptr() as *mut _, name.as_ref().as_ptr(), n.as_mut_ptr())
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(unsafe { n.assume_init() })
+        }
+    }
+
+
+    pub fn lookup_nvlist_array<S: CStrArgument>(&self, name: S) -> io::Result<Vec<NvList>> {
+        let name = name.into_cstr();
+        let mut n = ptr::null_mut();
+        let mut len = 0;
+        let v = unsafe {
+            sys::nvlist_lookup_nvlist_array(
+                self.as_ptr() as *mut _,
+                name.as_ref().as_ptr(),
+                &mut n,
+                &mut len,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            let r = unsafe {
+                std::slice::from_raw_parts(n, len as usize)
+                    .iter()
+                    .map(|x| NvList::from_ptr(*x))
+                    .collect()
+            };
+
+            Ok(r)
+        }
+    }
+
+    pub fn lookup_uint64_array<S: CStrArgument>(&self, name: S) -> io::Result<Vec<u64>> {
+        let name = name.into_cstr();
+
+        let mut n = ptr::null_mut();
+        let mut len = 0;
+        let v = unsafe {
+            sys::nvlist_lookup_uint64_array(
+                self.as_ptr() as *mut _,
+                name.as_ref().as_ptr(),
+                &mut n,
+                &mut len,
+            )
+        };
+
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            let r = unsafe {
+                ::std::slice::from_raw_parts(n, len as usize)
+                    .iter()
+                    .map(|x| *x)
+                    .collect()
+            };
+
+            Ok(r)
+        }
+    } 
 }
 
 impl std::fmt::Debug for NvListRef {
