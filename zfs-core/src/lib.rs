@@ -1,11 +1,11 @@
 #![warn(missing_debug_implementations, rust_2018_idioms)]
 
-use zfs_core_sys as sys;
 use cstr_argument::CStrArgument;
 use foreign_types::ForeignType;
 use nvpair::NvList;
-use std::{io, ptr, fmt};
 use std::marker::PhantomData;
+use std::{fmt, io, ptr};
+use zfs_core_sys as sys;
 
 /// A handle to work with Zfs filesystems
 // Note: the Drop for this makes clone-by-copy unsafe. Could clone by just calling new().
@@ -19,8 +19,7 @@ pub struct Zfs {
 
 impl fmt::Debug for Zfs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Zfs")
-            .finish()
+        f.debug_struct("Zfs").finish()
     }
 }
 

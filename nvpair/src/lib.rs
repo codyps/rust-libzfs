@@ -1,11 +1,11 @@
 #![warn(missing_debug_implementations, rust_2018_idioms)]
 
-use nvpair_sys as sys;
 use cstr_argument::CStrArgument;
-use foreign_types::{ForeignType, ForeignTypeRef, Opaque, foreign_type};
-use std::{io, ffi, fmt, ptr};
+use foreign_types::{foreign_type, ForeignType, ForeignTypeRef, Opaque};
+use nvpair_sys as sys;
 use std::mem::MaybeUninit;
 use std::os::raw::c_int;
+use std::{ffi, fmt, io, ptr};
 
 #[derive(Debug)]
 pub enum NvData<'a> {
@@ -373,10 +373,7 @@ impl NvListRef {
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            let r = unsafe {
-                ::std::slice::from_raw_parts(n, len as usize)
-                    .to_vec()
-            };
+            let r = unsafe { ::std::slice::from_raw_parts(n, len as usize).to_vec() };
 
             Ok(r)
         }
@@ -401,8 +398,7 @@ pub struct NvListIter<'a> {
 
 impl<'a> fmt::Debug for NvListIter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("NvListIter")
-            .finish()
+        f.debug_struct("NvListIter").finish()
     }
 }
 
