@@ -2,20 +2,9 @@ extern crate zfs_core as zfs;
 extern crate rand;
 extern crate nvpair;
 
-use std::iter;
 use std::io;
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
-
-fn test_fsname_base(extra: &str) -> String
-{
-    let mut b = std::env::var("ZFS_TEST_BASE").expect("Set ZFS_TEST_BASE to a suitable zfs fspath to run tests on");
-    b.push_str("/");
-    b.push_str(module_path!());
-    b.push_str("-");
-    b.push_str(extra);
-    b
-}
 
 struct TempFs {
     path: String
@@ -98,5 +87,11 @@ fn create_destroy() {
     let z = zfs::Zfs::new().unwrap();
     let nv = nvpair::NvList::new().unwrap();
     z.create(&b, zfs::DataSetType::Zfs, &nv).expect(&format!("create {:?} failed", b));
+
+    assert_eq!(z.exists(&b), true);
+    let mut b2 = b.clone();
+    b2.push_str("fooie");
+    assert_eq!(z.exists(&b2), false);
+
     z.destroy(&b).unwrap();
 }
