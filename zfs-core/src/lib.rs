@@ -1,13 +1,13 @@
-extern crate zfs_core_sys as sys;
-extern crate nvpair;
 extern crate cstr_argument;
 extern crate foreign_types;
+extern crate nvpair;
+extern crate zfs_core_sys as sys;
 
-use nvpair::NvList;
-use foreign_types::{ForeignType};
 use cstr_argument::CStrArgument;
-use std::marker::PhantomData;
+use foreign_types::ForeignType;
+use nvpair::NvList;
 use std::io;
+use std::marker::PhantomData;
 use std::ptr;
 
 /// A handle to work with Zfs filesystems
@@ -17,7 +17,7 @@ use std::ptr;
 // `libzfs_core_fini()` calls, so we need the init to match fini. Alternatively, we could use a
 // single init and never fini.
 pub struct Zfs {
-    i: PhantomData<()>
+    i: PhantomData<()>,
 }
 
 pub enum DataSetType {
@@ -26,11 +26,10 @@ pub enum DataSetType {
 }
 
 impl DataSetType {
-    fn as_raw(&self) -> ::std::os::raw::c_uint
-    {
+    fn as_raw(&self) -> ::std::os::raw::c_uint {
         match self {
             &DataSetType::Zfs => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZFS,
-            &DataSetType::Zvol => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZVOL
+            &DataSetType::Zvol => sys::lzc_dataset_type::LZC_DATSET_TYPE_ZVOL,
         }
     }
 }
@@ -38,26 +37,32 @@ impl DataSetType {
 impl Zfs {
     /// Create a handle to the Zfs subsystem
     pub fn new() -> io::Result<Self> {
-        let v = unsafe {
-            sys::libzfs_core_init()
-        };
+        let v = unsafe { sys::libzfs_core_init() };
 
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            Ok(Self {
-                i: PhantomData
-            })
+            Ok(Self { i: PhantomData })
         }
     }
 
-    pub fn create<S: CStrArgument>(&self, name: S, dataset_type: DataSetType, props: &NvList) -> io::Result<()>
-    {
+    pub fn create<S: CStrArgument>(
+        &self,
+        name: S,
+        dataset_type: DataSetType,
+        props: &NvList,
+    ) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe {
-            sys::lzc_create(name.as_ref().as_ptr(), dataset_type.as_raw(), props.as_ptr() as *mut _, ptr::null_mut(), 0)
+            sys::lzc_create(
+                name.as_ref().as_ptr(),
+                dataset_type.as_raw(),
+                props.as_ptr() as *mut _,
+                ptr::null_mut(),
+                0,
+            )
         };
-    
+
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -65,13 +70,10 @@ impl Zfs {
         }
     }
 
-    pub fn destroy<S: CStrArgument>(&self, name: S) -> io::Result<()>
-    {
+    pub fn destroy<S: CStrArgument>(&self, name: S) -> io::Result<()> {
         let name = name.into_cstr();
-        let v = unsafe {
-            sys::lzc_destroy(name.as_ref().as_ptr())
-        };
-    
+        let v = unsafe { sys::lzc_destroy(name.as_ref().as_ptr()) };
+
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -79,8 +81,7 @@ impl Zfs {
         }
     }
 
-    pub fn exists<S: CStrArgument>(&self, name: S) -> bool
-    {
+    pub fn exists<S: CStrArgument>(&self, name: S) -> bool {
         let name = name.into_cstr();
         let v = unsafe { sys::lzc_exists(name.as_ref().as_ptr()) };
         v != 0
@@ -88,15 +89,16 @@ impl Zfs {
 
     // TODO: this is a fairly raw interface, consider abstracting (or at least adding some
     // restrictions on the NvLists).
-    pub fn snapshot(&self, snaps: &NvList, props: &NvList) -> Result<(), (io::Error, NvList)>
-    {
+    pub fn snapshot(&self, snaps: &NvList, props: &NvList) -> Result<(), (io::Error, NvList)> {
         let mut nv = ptr::null_mut();
         let v = unsafe {
             sys::lzc_snapshot(snaps.as_ptr() as *mut _, props.as_ptr() as *mut _, &mut nv)
         };
 
         if v != 0 {
-            Err((io::Error::from_raw_os_error(v), unsafe { NvList::from_ptr(nv) }))
+            Err((io::Error::from_raw_os_error(v), unsafe {
+                NvList::from_ptr(nv)
+            }))
         } else {
             Ok(())
         }
@@ -128,9 +130,7 @@ impl Zfs {
 
 impl Drop for Zfs {
     fn drop(&mut self) {
-        unsafe {
-            sys::libzfs_core_fini()
-        }
+        unsafe { sys::libzfs_core_fini() }
     }
 }
 
