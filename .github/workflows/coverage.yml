@@ -1,0 +1,46 @@
+on:
+  push:
+    branches-ignore:
+      - '**.tmp'
+
+name: Code Coverage
+
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+    env:
+      ZFS_TEMPFS: tpool
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install dependencies
+        run: sudo apt install libzfslinux-dev zfsutils-linux
+
+      - name: Setup test pool
+        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - name: Run tests & generate coverage info
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --no-fail-fast
+        env:
+          CARGO_INCREMENTAL: '0'
+          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+      - name: Convert coverage to lcov format for upload
+        uses: actions-rs/grcov@0.2-proto
+        id: coverage
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: ${{ steps.coverage.outputs.report }}
+      - name: Upload to coveralls
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ${{ steps.coverage.outputs.report }}
