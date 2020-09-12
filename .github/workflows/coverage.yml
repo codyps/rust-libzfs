@@ -17,7 +17,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
       - name: Install dependencies
         run: sudo apt install libzfslinux-dev zfsutils-linux
 
