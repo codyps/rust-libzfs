@@ -37,16 +37,17 @@ jobs:
           CARGO_INCREMENTAL: '0'
           RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
           RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-      - name: Convert coverage to lcov format for upload
+      - name: Parse coverage info
+        run: grcov ./target/debug -t coveralls -s . --token ${{ secrets.COVERALLS_TOKEN }} > coveralls.json
         uses: actions-rs/grcov@0.2-proto
         id: coverage
+
+      - run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
+      - run: zip -0 ccov.zip `find . \( -name "*.gc*" \) -print`
+      - run: ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info
+      - run: bash <(curl -s https://codecov.io/bash) -f lcov.info
       - name: Archive code coverage results
         uses: actions/upload-artifact@v1
         with:
           name: code-coverage-report
           path: ${{ steps.coverage.outputs.report }}
-      - name: Upload to coveralls
-        uses: coverallsapp/github-action@v1.1.2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ${{ steps.coverage.outputs.report }}
