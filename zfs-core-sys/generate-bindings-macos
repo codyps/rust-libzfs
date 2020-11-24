@@ -1,0 +1,33 @@
+#!/bin/sh
+d=$(dirname $0)
+bindgen "$d/wrapper.h" \
+	-o "$d/src/bindings.rs" \
+	--whitelist-function 'libzfs_core_.*' \
+	--whitelist-function 'lzc_.*' \
+	--whitelist-type 'dmu_replay_record' \
+	--whitelist-type 'lzc_.*' \
+	--whitelist-type 'pool_initialize_func.*' \
+	--whitelist-type 'pool_trim_func.*' \
+	--whitelist-type 'size_t' \
+	--whitelist-type 'uchar_t' \
+	--whitelist-type 'uint_t' \
+	--whitelist-type 'vdev_.*' \
+	--whitelist-type 'zfs_.*' \
+	--whitelist-type 'zpool_.*' \
+	--whitelist-var 'L2ARC_.*' \
+	--whitelist-var 'SPA_.*' \
+	--whitelist-var 'VDEV_.*' \
+	--whitelist-var 'ZFS_.*' \
+	--whitelist-var 'ZPL_.*' \
+	--whitelist-var 'ZPOOL_.*' \
+	--whitelist-var 'DEFAULT_PBKDF2_ITERATIONS' \
+	--whitelist-var 'MIN_PBKDF2_ITERATIONS' \
+	--constified-enum-module '.*' \
+	--opaque-type dmu_replay_record \
+	--blacklist-type 'va_list' \
+	--blacklist-type '_IO_FILE' \
+	--blacklist-type 'FILE' \
+	--size_t-is-usize \
+	-- \
+	-I ~/d/zfs/include \
+	-I "$d/inc-macos"

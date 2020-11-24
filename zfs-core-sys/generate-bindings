@@ -17,4 +17,6 @@ bindgen "$d/wrapper.h" \
 	--blacklist-type '_IO_FILE' \
 	--blacklist-type 'FILE' \
 	--no-recursive-whitelist \
-	-- `pkg-config libzfs_core --cflags`
+	--size_t-is-usize \
+	-- \
+	"$@"
