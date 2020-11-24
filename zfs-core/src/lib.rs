@@ -385,10 +385,19 @@ pub enum InitializeFunc {
     Suspend
 }
 
-pub enum TrimFunc {
+pub enum PoolTrimFunc {
     Start,
     Cancel,
     Suspend
 }
 
-
+pub enum WaitActivity {
+    Discard,
+    Free,
+    Initialize,
+    Replace,
+    Remove,
+    Resliver,
+    Scrub,
+    Trim,
+}
