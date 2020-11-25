@@ -152,7 +152,7 @@ fn snapshot() {
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_snap), true);
 
-    z.destroy(&b_snap).unwrap();
+    z.destroy_snaps(&snaps, false).unwrap();
     z.destroy(&b).unwrap();
 }
 
