@@ -115,7 +115,9 @@ impl Zfs {
         }
     }
 
-    /// 
+    /// Destroy the given dataset (which may be a filesystem, snapshot, bookmark, volume, etc)
+    ///
+    /// Corresponds to `lzc_destroy()`
     pub fn destroy<S: CStrArgument>(&self, name: S) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe { sys::lzc_destroy(name.as_ref().as_ptr()) };
@@ -127,6 +129,13 @@ impl Zfs {
         }
     }
 
+    /// Create snapshot(s). `snaps` is a list of booleans, the names of which correspond to
+    /// snapshot names.
+    ///
+    /// The snapshots must be from the same pool, and must not reference the same dataset (iow:
+    /// cannot create 2 snapshots of the same filesystem).
+    ///
+    /// Corresponds to `lzc_snapshot()`.
     // TODO: this is a fairly raw interface, consider abstracting (or at least adding some
     // restrictions on the NvLists).
     pub fn snapshot(&self, snaps: &NvList, props: &NvList) -> Result<(), (io::Error, Option<NvList>)> {

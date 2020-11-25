@@ -156,6 +156,43 @@ fn snapshot() {
     z.destroy(&b).unwrap();
 }
 
+#[test]
+fn snapshot_multi() {
+    let tmpfs = TempFs::new("snapshot_multi").unwrap();
+
+    let mut b = tmpfs.path().to_owned();
+    b.push_str("/");
+    let mut b_alt = b.clone();
+    b.push_str("1");
+    b_alt.push_str("2");
+
+    let z = zfs::Zfs::new().unwrap();
+    let nv = nvpair::NvList::new().unwrap();
+    z.create(&b, zfs::DataSetType::Zfs, &nv)
+        .expect(&format!("create {:?} failed", b));
+    z.create(&b_alt, zfs::DataSetType::Zfs, &nv)
+        .expect(&format!("create {:?} failed", b_alt));
+
+    assert_eq!(z.exists(&b), true);
+    assert_eq!(z.exists(&b_alt), true);
+
+    let mut props = nvpair::NvList::new().unwrap();
+    let mut snaps = nvpair::NvList::new().unwrap();
+    let mut b_snap1 = b.clone();
+    b_snap1.push_str("@a");
+    snaps.insert(&b_snap1, ()).unwrap();
+    let mut b_snap2 = b_alt.clone();
+    b_snap2.push_str("@b");
+    snaps.insert(&b_snap2, ()).unwrap();
+    z.snapshot(&snaps, &props).unwrap();
+
+    assert_eq!(z.exists(&b), true);
+    assert_eq!(z.exists(&b_snap1), true);
+    assert_eq!(z.exists(&b_snap2), true);
+
+    z.destroy_snaps(&snaps, false).unwrap();
+    z.destroy(&b).unwrap();
+}
 #[cfg(features = "v2_00")]
 #[test]
 fn bootenv() {
