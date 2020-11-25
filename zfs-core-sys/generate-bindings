@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -euf -o pipefail
 d=$(dirname $0)
 
 # either use system definitions (found via pkg-config) or ones from the zfs source repo
@@ -9,6 +10,7 @@ else
 	ARGS+=($(pkg-config --cflags libzfs_core))
 fi
 
+set -x
 bindgen "$d/wrapper.h" \
 	-o "$d/src/bindings.rs" \
 	--whitelist-function 'libzfs_core_.*' \
@@ -31,7 +33,8 @@ bindgen "$d/wrapper.h" \
 	--whitelist-var 'ZPOOL_.*' \
 	--whitelist-var 'DEFAULT_PBKDF2_ITERATIONS' \
 	--whitelist-var 'MIN_PBKDF2_ITERATIONS' \
-	--constified-enum-module '.*' \
+	--default-enum-style moduleconsts \
+	--rustified-enum 'zfs_errno_t' \
 	--opaque-type dmu_replay_record \
 	--blacklist-type 'va_list' \
 	--blacklist-type '_IO_FILE' \

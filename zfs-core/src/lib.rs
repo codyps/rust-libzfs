@@ -156,10 +156,10 @@ impl Zfs {
         }
     }
 
-    pub fn destroy_snaps(&self, snaps: &NvList, defer: bool) -> Result<(), (io::Error, NvList)> {
+    pub fn destroy_snaps(&self, snaps: &NvList, defer: Defer) -> Result<(), (io::Error, NvList)> {
         let mut nv = ptr::null_mut();
         let v = unsafe {
-            sys::lzc_destroy_snaps(snaps.as_ptr() as *mut _, defer as u32, &mut nv)
+            sys::lzc_destroy_snaps(snaps.as_ptr() as *mut _, bool::from(defer) as sys::boolean_t::Type, &mut nv)
         };
 
         if v != 0 {
@@ -217,10 +217,16 @@ impl Zfs {
     /// The keys in the nvlist are snapshot names.                     
     /// The snapshots must all be in the same pool.
     /// The value is the name of the hold (string type).
-    pub fn hold_raw<S: CStrArgument>(&self, holds: &NvListRef, cleanup_fd: Option<RawFd>) -> io::Result<()> {
-        let v = unsafe { sys::lzc_hold(holds.as_ptr() as *mut _, cleanup_fd.unwrap_or(-1), /* errlist: */ptr::null_mut()) };
+    pub fn hold_raw(&self, holds: &NvListRef, cleanup_fd: Option<RawFd>) -> Result<(), (io::Error, Option<NvList>)> {
+        let mut errs = ptr::null_mut();
+        let v = unsafe { sys::lzc_hold(holds.as_ptr() as *mut _, cleanup_fd.unwrap_or(-1), &mut errs) };
         if v != 0 {
-            Err(io::Error::from_raw_os_error(v))
+            let e = if errs.is_null() {
+                None
+            } else {
+                Some(unsafe { NvList::from_ptr(errs)})
+            };
+            Err((io::Error::from_raw_os_error(v), e))
         } else {
             Ok(())
         }
@@ -289,14 +295,15 @@ impl Zfs {
         }
     }
 
+    /*
     /// Corresponds to `lzc_send_resume_redacted()`
     #[cfg(features = "v2_00")]
-    pub fn send_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, resume_obj: u64, resume_off: u64, redactbook: R) -> io::Result<()> {
+    pub fn send_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, _snapname: S, _from: F, _fd: RawFd, _resume_obj: u64, _resume_off: u64, _redactbook: R) -> io::Result<()> {
         unimplemented!()
     }
 
     /// Corresponds to `lzc_send_space()`
-    pub fn send_space<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, flags: u64) -> io::Result<u64> {
+    pub fn send_space<S: CStrArgument, F: CStrArgument>(&self, _snapname: S, _from: F, _flags: u64) -> io::Result<u64> {
         unimplemented!()
     }
 
@@ -306,14 +313,15 @@ impl Zfs {
     }
 
     /// Corresponds to `lzc_receive()`
-    pub fn receive<S: CStrArgument, O: CStrArgument>(&self, snapname: S, props: &NvList, origin: O, force: bool, raw: bool, fd: RawFd) -> io::Result<()> {
+    pub fn receive<S: CStrArgument, O: CStrArgument>(&self, _snapname: S, _props: &NvList, _origin: O, _force: bool, _raw: bool, _fd: RawFd) -> io::Result<()> {
         unimplemented!()
     }
 
     // internally, only a flag differs from `recv`
-    pub fn receive_resumable<S: CStrArgument, O: CStrArgument>(&self, snapname: S, props: &NvListRef, origin: O, force: bool, raw: bool, fd: RawFd) -> io::Result<()> {
+    pub fn receive_resumable<S: CStrArgument, O: CStrArgument>(&self, _snapname: S, _props: &NvListRef, _origin: O, _force: bool, _raw: bool, _fd: RawFd) -> io::Result<()> {
         unimplemented!()
     }
+    */
 
     /*
     pub fn receive_with_header<S: CStrArgument, O: CStrArgument>(&self, snapname: S, props: &NvListRef, origin: O, force: bool, resumeable: bool, raw: bool, fd: RawFd, begin_record: &DmuReplayRecordRef) -> io::Result<()> {
@@ -333,6 +341,7 @@ impl Zfs {
     }
     */
 
+    /*
     pub fn rollback<S: CStrArgument>(&self, fsname: S, snap_name_buf: &mut [u8]) -> io::Result<&[u8]> {
         unimplemented!()
     }
@@ -419,6 +428,7 @@ impl Zfs {
     pub fn wait_fs<F: CStrArgument>(&self, fs: F, activity: WaitActivity) -> io::Result<bool> {
         unimplemented!()
     }
+    */
 
     #[cfg(features = "v2_00")]
     pub fn set_bootenv<P: CStrArgument, E: CStrArgument>(&self, pool: P, env: &NvListRef) -> io::Result<()> {
@@ -476,7 +486,7 @@ pub enum WaitActivity {
     Trim,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct SendFlags {
     pub embed_data: bool,
     pub large_block: bool,
@@ -501,5 +511,26 @@ impl From<SendFlags> for u32 {
         }
 
         f
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Defer {
+    No,
+    Yes,
+}
+
+impl Default for Defer {
+    fn default() -> Self {
+        Defer::No
+    }
+}
+
+impl From<Defer> for bool {
+    fn from(d: Defer) -> Self {
+        match d {
+            Defer::No => false,
+            Defer::Yes => true,
+        }
     }
 }

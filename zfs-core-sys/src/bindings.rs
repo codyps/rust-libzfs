@@ -1571,29 +1571,30 @@ pub mod zfs_ioc {
     pub const ZFS_IOC_LAST: Type = 23177;
 }
 pub use self::zfs_ioc::Type as zfs_ioc_t;
-pub mod zfs_errno_t {
-    pub type Type = ::std::os::raw::c_uint;
-    pub const ZFS_ERR_CHECKPOINT_EXISTS: Type = 1024;
-    pub const ZFS_ERR_DISCARDING_CHECKPOINT: Type = 1025;
-    pub const ZFS_ERR_NO_CHECKPOINT: Type = 1026;
-    pub const ZFS_ERR_DEVRM_IN_PROGRESS: Type = 1027;
-    pub const ZFS_ERR_VDEV_TOO_BIG: Type = 1028;
-    pub const ZFS_ERR_IOC_CMD_UNAVAIL: Type = 1029;
-    pub const ZFS_ERR_IOC_ARG_UNAVAIL: Type = 1030;
-    pub const ZFS_ERR_IOC_ARG_REQUIRED: Type = 1031;
-    pub const ZFS_ERR_IOC_ARG_BADTYPE: Type = 1032;
-    pub const ZFS_ERR_WRONG_PARENT: Type = 1033;
-    pub const ZFS_ERR_FROM_IVSET_GUID_MISSING: Type = 1034;
-    pub const ZFS_ERR_FROM_IVSET_GUID_MISMATCH: Type = 1035;
-    pub const ZFS_ERR_SPILL_BLOCK_FLAG_MISSING: Type = 1036;
-    pub const ZFS_ERR_UNKNOWN_SEND_STREAM_FEATURE: Type = 1037;
-    pub const ZFS_ERR_EXPORT_IN_PROGRESS: Type = 1038;
-    pub const ZFS_ERR_BOOKMARK_SOURCE_NOT_ANCESTOR: Type = 1039;
-    pub const ZFS_ERR_STREAM_TRUNCATED: Type = 1040;
-    pub const ZFS_ERR_STREAM_LARGE_BLOCK_MISMATCH: Type = 1041;
-    pub const ZFS_ERR_RESILVER_IN_PROGRESS: Type = 1042;
-    pub const ZFS_ERR_REBUILD_IN_PROGRESS: Type = 1043;
-    pub const ZFS_ERR_BADPROP: Type = 1044;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum zfs_errno_t {
+    ZFS_ERR_CHECKPOINT_EXISTS = 1024,
+    ZFS_ERR_DISCARDING_CHECKPOINT = 1025,
+    ZFS_ERR_NO_CHECKPOINT = 1026,
+    ZFS_ERR_DEVRM_IN_PROGRESS = 1027,
+    ZFS_ERR_VDEV_TOO_BIG = 1028,
+    ZFS_ERR_IOC_CMD_UNAVAIL = 1029,
+    ZFS_ERR_IOC_ARG_UNAVAIL = 1030,
+    ZFS_ERR_IOC_ARG_REQUIRED = 1031,
+    ZFS_ERR_IOC_ARG_BADTYPE = 1032,
+    ZFS_ERR_WRONG_PARENT = 1033,
+    ZFS_ERR_FROM_IVSET_GUID_MISSING = 1034,
+    ZFS_ERR_FROM_IVSET_GUID_MISMATCH = 1035,
+    ZFS_ERR_SPILL_BLOCK_FLAG_MISSING = 1036,
+    ZFS_ERR_UNKNOWN_SEND_STREAM_FEATURE = 1037,
+    ZFS_ERR_EXPORT_IN_PROGRESS = 1038,
+    ZFS_ERR_BOOKMARK_SOURCE_NOT_ANCESTOR = 1039,
+    ZFS_ERR_STREAM_TRUNCATED = 1040,
+    ZFS_ERR_STREAM_LARGE_BLOCK_MISMATCH = 1041,
+    ZFS_ERR_RESILVER_IN_PROGRESS = 1042,
+    ZFS_ERR_REBUILD_IN_PROGRESS = 1043,
+    ZFS_ERR_BADPROP = 1044,
 }
 pub mod zpool_wait_activity_t {
     pub type Type = ::std::os::raw::c_uint;
