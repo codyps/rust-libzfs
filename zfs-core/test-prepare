@@ -20,7 +20,7 @@ zpool create "$base" "$PWD/test-pool-$base.img"
 # openzfsonosx 1.9.4: mount,create
 #   automatically get destroy for created datasets?
 # zfsonlinux 0.8.3: mount,create,destroy
-zfs allow -uld "$SUDO_USER" mount,create,destroy "$base"
+zfs allow -uld "$SUDO_USER" mount,create,destroy,rename,snapshot "$base"
 set +x
 
 echo "export ZFS_TEMPFS=$base"

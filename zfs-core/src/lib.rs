@@ -52,6 +52,7 @@ impl Zfs {
         }
     }
 
+    /// Corresponds to `lzc_create()`
     pub fn create<S: CStrArgument>(
         &self,
         name: S,
@@ -76,6 +77,7 @@ impl Zfs {
         }
     }
 
+    /// Corresponds to `lzc_clone()`
     pub fn clone<S: CStrArgument, S2: CStrArgument>(&self, name: S, origin: S2, props: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let origin = origin.into_cstr();
@@ -89,6 +91,7 @@ impl Zfs {
 
     // TODO: avoid using an out-param for `snap_name_buf`
     // `snap_name_buf` is filled by a cstring
+    /// Corresponds to `lzc_promote()`
     pub fn promote<S: CStrArgument>(&self, fsname: S, snap_name_buf: &mut [u8]) -> io::Result<()> {
         let fsname = fsname.into_cstr();
         let v = unsafe { sys::lzc_promote(fsname.as_ref().as_ptr(), snap_name_buf.as_mut_ptr() as *mut _, snap_name_buf.len().try_into().unwrap()) };
@@ -99,6 +102,7 @@ impl Zfs {
         }
     }
 
+    /// Corresponds to `lzc_rename()`
     pub fn rename<S: CStrArgument, T: CStrArgument>(&self, source: S, target: T) -> io::Result<()> {
         let source = source.into_cstr();
         let target = target.into_cstr();
@@ -125,16 +129,19 @@ impl Zfs {
 
     // TODO: this is a fairly raw interface, consider abstracting (or at least adding some
     // restrictions on the NvLists).
-    pub fn snapshot(&self, snaps: &NvList, props: &NvList) -> Result<(), (io::Error, NvList)> {
+    pub fn snapshot(&self, snaps: &NvList, props: &NvList) -> Result<(), (io::Error, Option<NvList>)> {
         let mut nv = ptr::null_mut();
         let v = unsafe {
             sys::lzc_snapshot(snaps.as_ptr() as *mut _, props.as_ptr() as *mut _, &mut nv)
         };
 
         if v != 0 {
-            Err((io::Error::from_raw_os_error(v), unsafe {
-                NvList::from_ptr(nv)
-            }))
+            let e = if nv.is_null() {
+                None
+            } else {
+                Some(unsafe { NvList::from_ptr(nv) })
+            };
+            Err((io::Error::from_raw_os_error(v), e))
         } else {
             Ok(())
         }
@@ -181,6 +188,7 @@ impl Zfs {
         v != 0
     }
 
+    // 0.8.?
     pub fn sync<S: CStrArgument>(&self, pool_name: S, nvl: &NvListRef) -> io::Result<()> {
         let pool_name = pool_name.into_cstr();
         let v = unsafe {
@@ -230,31 +238,65 @@ impl Zfs {
         }
     }
     
-    pub fn send<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, fd: RawFd) -> io::Result<()> {
-        // TODO: FLAGS
-        unimplemented!()
+    /// Corresponds to `lzc_send()`
+    pub fn send<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, flags: SendFlags) -> io::Result<()> {
+        let snapname = snapname.into_cstr();
+        let from = from.into_cstr();
+
+        let v = unsafe { sys::lzc_send(snapname.as_ref().as_ptr(), from.as_ref().as_ptr(), fd, flags.into()) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
     }
 
-    pub fn send_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, redactbook: R) -> io::Result<()> {
-        unimplemented!()
+    /// Corresponds to `lzc_send_redacted()`
+    #[cfg(features = "v2_00")]
+    pub fn send_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, redactbook: R, flags: SendFlags) -> io::Result<()> {
+        let snapname = snapname.into_cstr();
+        let from = from.into_cstr();
+        let redactbook = redactbook.into_cstr();
+
+        let v = unsafe { sys::lzc_send_redacted(snapname.as_ref().as_ptr(), from.as_ref().as_ptr(), fd, redactbook.as_ref().as_ptr(), flags.into()) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
     }
 
-    pub fn send_resume<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, resume_obj: u64, resume_off: u64) -> io::Result<()> {
-        unimplemented!()
+    pub fn send_resume<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, flags: SendFlags, resume_obj: u64, resume_off: u64) -> io::Result<()> {
+        let snapname = snapname.into_cstr();
+        let from = from.into_cstr();
+
+        let v = unsafe {
+            sys::lzc_send_resume(snapname.as_ref().as_ptr(), from.as_ref().as_ptr(), fd, flags.into(), resume_obj, resume_off)
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
     }
 
+    /// Corresponds to `lzc_send_resume_redacted()`
+    #[cfg(features = "v2_00")]
     pub fn send_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, resume_obj: u64, resume_off: u64, redactbook: R) -> io::Result<()> {
         unimplemented!()
     }
 
+    /// Corresponds to `lzc_send_space()`
     pub fn send_space<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, flags: u64) -> io::Result<u64> {
         unimplemented!()
     }
 
+    #[cfg(features = "v2_00")]
     pub fn send_space_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, flags: u64, resume_obj: u64, resume_off: u64, resume_bytes: u64, redactbook: R, fd: RawFd) -> io::Result<u64> {
         unimplemented!()
     }
 
+    /// Corresponds to `lzc_receive()`
     pub fn receive<S: CStrArgument, O: CStrArgument>(&self, snapname: S, props: &NvList, origin: O, force: bool, raw: bool, fd: RawFd) -> io::Result<()> {
         unimplemented!()
     }
@@ -308,10 +350,12 @@ impl Zfs {
         unimplemented!()
     }
 
+    // 0.8.?
     pub fn channel_program<P: CStrArgument, R: CStrArgument>(&self, pool: P, program: R, instruction_limit: u64, memlimit: u64, args: &NvListRef) -> io::Result<NvList> {
         unimplemented!()
     }
 
+    // 0.8.?
     pub fn pool_checkpoint<P: CStrArgument>(&self, pool: P) -> io::Result<()> {
         unimplemented!()
     }
@@ -336,14 +380,17 @@ impl Zfs {
         unimplemented!()
     }
 
+    // 0.8.?
     pub fn reopen<P: CStrArgument>(&self, pool: P, scrub_restart: bool) -> io::Result<()> {
         unimplemented!()
     }
 
+    // 0.8.?
     pub fn initialize<P: CStrArgument>(&self, pool: P, initialize_func: InitializeFunc, vdevs: &NvListRef) -> Result<(), (io::Error, NvList)> {
         unimplemented!()
     }
 
+    // 0.8.?
     pub fn trim<P: CStrArgument>(&self, pool: P, pool_trim_func: PoolTrimFunc, rate: u64, secure: bool, vdevs: &NvListRef) -> Result<(), (io::Error, NvList)> {
         unimplemented!()
     }
@@ -364,12 +411,27 @@ impl Zfs {
         unimplemented!()
     }
 
-    pub fn set_bootenv<P: CStrArgument, E: CStrArgument>(&self, pool: P, env: E) -> io::Result<()> {
-        unimplemented!()
+    #[cfg(features = "v2_00")]
+    pub fn set_bootenv<P: CStrArgument, E: CStrArgument>(&self, pool: P, env: &NvListRef) -> io::Result<()> {
+        let pool = pool.into_cstr();
+        let v = unsafe { sys::lzc_set_bootenv(pool.as_ref().as_ptr(), env.as_ptr()) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
     }
 
+    #[cfg(features = "v2_00")]
     pub fn bootenv<P: CStrArgument>(&self, pool: P) -> io::Result<NvList> {
-        unimplemented!()
+        let pool = pool.into_cstr();
+        let mut env = ptr::null_mut();
+        let v = unsafe { sys::lzc_get_bootenv(pool.as_ref().as_ptr(), &mut env) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(unsafe { NvList::from_ptr(env)})
+        }
     }
 }
 
@@ -379,18 +441,21 @@ impl Drop for Zfs {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum InitializeFunc {
     Start,
     Cancel,
     Suspend
 }
 
+#[derive(Debug, PartialEq)]
 pub enum PoolTrimFunc {
     Start,
     Cancel,
     Suspend
 }
 
+#[derive(Debug, PartialEq)]
 pub enum WaitActivity {
     Discard,
     Free,
@@ -400,4 +465,32 @@ pub enum WaitActivity {
     Resliver,
     Scrub,
     Trim,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct SendFlags {
+    pub embed_data: bool,
+    pub large_block: bool,
+    pub compress: bool,
+    pub raw: bool,
+}
+
+impl From<SendFlags> for u32 {
+    fn from(sf: SendFlags) -> Self {
+        let mut f = 0;
+        if sf.embed_data {
+            f |= sys::lzc_send_flags::LZC_SEND_FLAG_EMBED_DATA;
+        }
+        if sf.large_block {
+            f |= sys::lzc_send_flags::LZC_SEND_FLAG_LARGE_BLOCK;
+        }
+        if sf.compress {
+            f |= sys::lzc_send_flags::LZC_SEND_FLAG_COMPRESS;
+        }
+        if sf.raw {
+            f |= sys::lzc_send_flags::LZC_SEND_FLAG_RAW;
+        }
+
+        f
+    }
 }

@@ -29,12 +29,12 @@ pub enum NvData<'a> {
 }
 
 pub trait NvEncode {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>;
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>;
     //fn read(NvPair &nv) -> io::Result<Self>;
 }
 
 impl NvEncode for bool {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe {
             sys::nvlist_add_boolean_value(
@@ -56,7 +56,7 @@ impl NvEncode for bool {
 }
 
 impl NvEncode for u32 {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe { sys::nvlist_add_uint32(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
         if v != 0 {
@@ -68,7 +68,7 @@ impl NvEncode for u32 {
 }
 
 impl NvEncode for ffi::CStr {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe {
             sys::nvlist_add_string(nv.as_mut_ptr(), name.as_ref().as_ptr(), self.as_ptr())
@@ -82,13 +82,30 @@ impl NvEncode for ffi::CStr {
 }
 
 impl NvEncode for NvListRef {
-    fn insert<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe {
             sys::nvlist_add_nvlist(
                 nv.as_mut_ptr(),
                 name.as_ref().as_ptr(),
                 self.as_ptr() as *mut _,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for () {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_boolean(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
             )
         };
         if v != 0 {
@@ -377,6 +394,21 @@ impl NvListRef {
 
             Ok(r)
         }
+    }
+
+    pub fn insert<S: CStrArgument, D: NvEncode>(&mut self, name: S, data: D) -> io::Result<()> {
+        data.insert_into(name, self)
+    }
+}
+
+impl std::fmt::Debug for NvList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_map()
+            .entries(
+                self.iter()
+                    .map(|pair| (pair.name().to_owned().into_string().unwrap(), pair.data())),
+            )
+            .finish()
     }
 }
 
