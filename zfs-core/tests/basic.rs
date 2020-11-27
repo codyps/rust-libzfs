@@ -1,10 +1,10 @@
-extern crate nvpair;
-extern crate rand;
 extern crate zfs_core as zfs;
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::io;
+use std::os::unix::io::AsRawFd;
+use std::io::Seek;
 
 struct TempFs {
     path: String,
@@ -247,6 +247,49 @@ fn hold_raw() {
     assert_eq!(z.exists(&b_snap2), false);
 
     z.destroy(&b).unwrap();
+}
+
+#[test]
+fn send_recv() {
+    let tmpfs = TempFs::new("send_recv").unwrap();
+    let mut fs1 = tmpfs.path().to_owned();
+    fs1.push_str("/");
+    let mut fs2 = fs1.clone();
+    fs1.push_str("1");
+    fs2.push_str("2");
+
+    let z = zfs::Zfs::new().unwrap();
+    let nv = nvpair::NvList::new().unwrap();
+    z.create(&fs1, zfs::DataSetType::Zfs, &nv)
+        .expect(&format!("create {:?} failed", fs1));
+
+    assert_eq!(z.exists(&fs1), true);
+    assert_eq!(z.exists(&fs2), false);
+
+    let props = nvpair::NvList::new().unwrap();
+    let mut snaps = nvpair::NvList::new().unwrap();
+    let mut snap1 = fs1.clone();
+    snap1.push_str("@a");
+    snaps.insert(&snap1, ()).unwrap();
+    z.snapshot(&snaps, &props).unwrap();
+
+    let mut snap2 = fs2.clone();
+    snap2.push_str("@b");
+
+    let mut stream = tempfile::tempfile().unwrap();
+    z.send::<_, &str>(&snap1, None, stream.as_raw_fd(), zfs::SendFlags::default()).unwrap();
+    stream.seek(io::SeekFrom::Start(0)).unwrap();
+    z.receive::<_, &str>(&snap2, None, None, false, false, stream.as_raw_fd()).unwrap();
+
+    assert_eq!(z.exists(&fs1), true);
+    assert_eq!(z.exists(&fs2), true);
+    assert_eq!(z.exists(&snap1), true);
+    assert_eq!(z.exists(&snap2), true);
+
+    z.destroy(&snap1).unwrap();
+    z.destroy(&snap2).unwrap();
+    z.destroy(&fs1).unwrap();
+    z.destroy(&fs2).unwrap();
 }
 
 #[cfg(features = "v2_00")]

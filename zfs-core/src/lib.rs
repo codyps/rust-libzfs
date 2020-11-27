@@ -78,7 +78,7 @@ impl Zfs {
     }
 
     /// Corresponds to `lzc_clone()`
-    pub fn clone<S: CStrArgument, S2: CStrArgument>(&self, name: S, origin: S2, props: &mut NvListRef) -> io::Result<()> {
+    pub fn clone_dataset<S: CStrArgument, S2: CStrArgument>(&self, name: S, origin: S2, props: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let origin = origin.into_cstr();
         let v = unsafe { sys::lzc_clone(name.as_ref().as_ptr(), origin.as_ref().as_ptr(), props.as_mut_ptr()) };
@@ -254,11 +254,11 @@ impl Zfs {
     }
     
     /// Corresponds to `lzc_send()`
-    pub fn send<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, flags: SendFlags) -> io::Result<()> {
+    pub fn send<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: Option<F>, fd: RawFd, flags: SendFlags) -> io::Result<()> {
         let snapname = snapname.into_cstr();
-        let from = from.into_cstr();
+        let from = from.map(|a| a.into_cstr());
 
-        let v = unsafe { sys::lzc_send(snapname.as_ref().as_ptr(), from.as_ref().as_ptr(), fd, flags.into()) };
+        let v = unsafe { sys::lzc_send(snapname.as_ref().as_ptr(), from.map_or(ptr::null(), |x| x.as_ref().as_ptr()), fd, flags.into()) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -311,17 +311,43 @@ impl Zfs {
     pub fn send_space_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, flags: u64, resume_obj: u64, resume_off: u64, resume_bytes: u64, redactbook: R, fd: RawFd) -> io::Result<u64> {
         unimplemented!()
     }
+    */
 
     /// Corresponds to `lzc_receive()`
-    pub fn receive<S: CStrArgument, O: CStrArgument>(&self, _snapname: S, _props: &NvList, _origin: O, _force: bool, _raw: bool, _fd: RawFd) -> io::Result<()> {
-        unimplemented!()
+    pub fn receive<S: CStrArgument, O: CStrArgument>(&self, snapname: S, props: Option<&NvListRef>, origin: Option<O>, force: bool, raw: bool, fd: RawFd) -> io::Result<()> {
+        let snapname = snapname.into_cstr();
+        let origin = origin.map(|x| x.into_cstr());
+
+        let r = unsafe {
+            sys::lzc_receive(snapname.as_ref().as_ptr(), props.map_or(ptr::null_mut(), |x| x.as_ptr() as *mut _), origin.map_or(ptr::null(),
+                |x| x.as_ref().as_ptr()), if force { 1 } else { 0 }, if raw { 1 } else { 0 }, fd)
+        };
+
+        if r < 0 {
+            Err(io::Error::from_raw_os_error(-r))
+        } else {
+            Ok(())
+        }
     }
 
+
+    /// Corresponds to `lzc_receive_resumable()`
     // internally, only a flag differs from `recv`
-    pub fn receive_resumable<S: CStrArgument, O: CStrArgument>(&self, _snapname: S, _props: &NvListRef, _origin: O, _force: bool, _raw: bool, _fd: RawFd) -> io::Result<()> {
-        unimplemented!()
+    // consider implimenting something that takes `resumeable` as a flag
+    pub fn receive_resumable<S: CStrArgument, O: CStrArgument>(&self, snapname: S, props: &NvListRef, origin: O, force: bool, raw: bool, fd: RawFd) -> io::Result<()> {
+        let snapname = snapname.into_cstr();
+        let origin = origin.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_receive_resumable(snapname.as_ref().as_ptr(), props.as_ptr() as *mut _, origin.as_ref().as_ptr(), if force { 1 } else { 0 }, if raw { 1 } else { 0 }, fd)
+        };
+
+        if r < 0 {
+            Err(io::Error::from_raw_os_error(-r))
+        } else {
+            Ok(())
+        }
     }
-    */
 
     /*
     pub fn receive_with_header<S: CStrArgument, O: CStrArgument>(&self, snapname: S, props: &NvListRef, origin: O, force: bool, resumeable: bool, raw: bool, fd: RawFd, begin_record: &DmuReplayRecordRef) -> io::Result<()> {

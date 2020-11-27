@@ -19,5 +19,6 @@ cstr-argument = "0.1"
 foreign-types = "0.5.0"
 rand = "0.7.3"
 
-[badges]
-travis-ci = { repository = "jmesmon/rust-libzfs" }
+[dev-dependencies]
+os_pipe = "0.9"
+tempfile = "3"
