@@ -284,6 +284,7 @@ impl Zfs {
         }
     }
 
+    /// Corresponds to `lzc_send_resume()`
     pub fn send_resume<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, flags: SendFlags, resume_obj: u64, resume_off: u64) -> io::Result<()> {
         let snapname = snapname.into_cstr();
         let from = from.into_cstr();
