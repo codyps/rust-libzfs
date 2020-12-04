@@ -198,10 +198,13 @@ impl Zfs {
     }
 
     // 0.8.?
-    pub fn sync<S: CStrArgument>(&self, pool_name: S, nvl: &NvListRef) -> io::Result<()> {
+    // TODO: `force` argument via nvlist
+    pub fn sync<S: CStrArgument>(&self, pool_name: S) -> io::Result<()> {
         let pool_name = pool_name.into_cstr();
+        let mut args = NvList::new_unique_names().unwrap();
+        args.insert("force", true).unwrap();
         let v = unsafe {
-            sys::lzc_sync(pool_name.as_ref().as_ptr(), nvl.as_ptr() as *mut _, ptr::null_mut())
+            sys::lzc_sync(pool_name.as_ref().as_ptr(), args.as_ptr() as *mut _, ptr::null_mut())
         };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
