@@ -59,13 +59,13 @@ fn lookup() {
 
 #[test]
 fn insert() {
-    let mut a = nvpair::NvList::new_unqiue_names().unwrap();
-    nvpair::NvEncode::insert(&true, "bool1", &mut a).unwrap();
-    nvpair::NvEncode::insert(&6u32, "u32", &mut a).unwrap();
+    let mut a = nvpair::NvList::new_unique_names().unwrap();
+    a.insert("bool1", true).unwrap();
+    a.insert("u32", 6u32).unwrap();
 
-    let _b1 = a.lookup("bool1").expect("lookup of bool1 failed");
+    let b1 = a.lookup("bool1").expect("lookup of bool1 failed");
 
-    match _b1.data() {
+    match b1.data() {
         nvpair::NvData::BoolV(v) => {
             assert!(v == true);
         }
@@ -74,9 +74,9 @@ fn insert() {
         }
     }
 
-    let _u1 = a.lookup("u32").expect("lookup of u32 failed");
+    let u1 = a.lookup("u32").expect("lookup of u32 failed");
 
-    match _u1.data() {
+    match u1.data() {
         nvpair::NvData::Uint32(v) => {
             assert!(v == 6u32);
         }
