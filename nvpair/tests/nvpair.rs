@@ -48,7 +48,7 @@ fn iter() {
 #[test]
 fn lookup() {
     let ns = ["one", "two", "three"];
-    let mut a = nvpair::NvList::new_unqiue_names().unwrap();
+    let mut a = nvpair::NvList::new_unique_names().unwrap();
 
     for n in ns.iter() {
         a.add_boolean(*n).unwrap();

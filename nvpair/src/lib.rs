@@ -161,7 +161,7 @@ impl NvList {
     }
 
     /// Create a new `NvList` with the `NV_UNIQUE_NAME` constraint
-    pub fn new_unqiue_names() -> io::Result<Self> {
+    pub fn new_unique_names() -> io::Result<Self> {
         let mut n = ptr::null_mut();
         let v = unsafe { sys::nvlist_alloc(&mut n, sys::NV_UNIQUE_NAME, 0) };
         if v != 0 {
