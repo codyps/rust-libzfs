@@ -1,3 +1,4 @@
 
 [workspace]
-members = ['zfs-core-sys', 'zfs-core', 'nvpair-sys', 'nvpair', 'systest']
+members = ['zfs-core-sys', 'zfs-core', 'nvpair-sys', 'nvpair']
+exclude = ['systest']
