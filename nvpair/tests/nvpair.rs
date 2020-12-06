@@ -60,8 +60,8 @@ fn lookup() {
 #[test]
 fn insert() {
     let mut a = nvpair::NvList::new_unique_names().unwrap();
-    a.insert("bool1", true).unwrap();
-    a.insert("u32", 6u32).unwrap();
+    a.insert("bool1", &true).unwrap();
+    a.insert("u32", &6u32).unwrap();
 
     let b1 = a.lookup("bool1").expect("lookup of bool1 failed");
 
@@ -89,4 +89,11 @@ fn insert() {
 
     // FIXME: use option wrapper
     //assert!(a.lookup("bool1").is_err());
+}
+
+#[test]
+fn insert_cstr() {
+    let mut a = nvpair::NvList::new().unwrap();
+
+    a.insert("hello", CStr::from_bytes_with_nul(b"bye\0").unwrap()).unwrap();
 }

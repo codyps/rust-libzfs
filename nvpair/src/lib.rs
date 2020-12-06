@@ -87,7 +87,7 @@ impl NvEncode for &str {
     }
 }
 
-impl NvEncode for &NvListRef {
+impl NvEncode for NvListRef {
     fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe {
@@ -119,6 +119,12 @@ impl NvEncode for () {
         } else {
             Ok(())
         }
+    }
+}
+
+impl NvEncode for str {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        ffi::CString::new(self).unwrap().insert_into(name, nv)
     }
 }
 
@@ -402,7 +408,7 @@ impl NvListRef {
         }
     }
 
-    pub fn insert<S: CStrArgument, D: NvEncode>(&mut self, name: S, data: D) -> io::Result<()> {
+    pub fn insert<S: CStrArgument, D: NvEncode + ?Sized>(&mut self, name: S, data: &D) -> io::Result<()> {
         data.insert_into(name, self)
     }
 }

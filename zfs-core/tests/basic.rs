@@ -263,7 +263,7 @@ fn hold_raw() {
 
     let mut release_snaps = nvpair::NvList::new().unwrap();
     let mut holds_for_snap = nvpair::NvList::new().unwrap();
-    holds_for_snap.insert("hold-hello", ()).unwrap();
+    holds_for_snap.insert("hold-hello", &()).unwrap();
     release_snaps.insert(&b_snap1, holds_for_snap.as_ref()).unwrap();
     z.release_raw(&release_snaps).unwrap();
 
@@ -333,7 +333,7 @@ fn rollback() {
     {
         snap1.push_str("@a");
         let mut snaps = nvpair::NvList::new().unwrap();
-        snaps.insert(&snap1, ()).unwrap();
+        snaps.insert(&snap1, &()).unwrap();
         z.snapshot_raw(&snaps, &props).unwrap();
     }
 
@@ -342,7 +342,7 @@ fn rollback() {
     {
         snap2.push_str("@b");
         let mut snaps = nvpair::NvList::new().unwrap();
-        snaps.insert(&snap2, ()).unwrap();
+        snaps.insert(&snap2, &()).unwrap();
         z.snapshot_raw(&snaps, &props).unwrap();
     }
 
@@ -379,7 +379,7 @@ fn rollback_to() {
     snap2.push_str("@b");
     z.snapshot([&snap2].iter().cloned()).unwrap();
 
-    z.destroy(&snap2);
+    z.destroy(&snap2).unwrap();
     z.rollback_to(&fs1, &snap1).unwrap();
 
     assert_eq!(z.exists(&fs1), true);

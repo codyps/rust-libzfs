@@ -4,7 +4,7 @@ use cstr_argument::CStrArgument;
 use foreign_types::ForeignType;
 use nvpair::{NvList, NvListRef};
 use std::marker::PhantomData;
-use std::{fmt, io, ptr};
+use std::{fmt, io, ptr, ffi};
 use std::convert::TryInto;
 use std::os::unix::io::RawFd;
 use zfs_core_sys as sys;
@@ -142,7 +142,7 @@ impl Zfs {
         let mut arg = NvList::new().unwrap();
 
         for i in snaps {
-            arg.insert(i.into_cstr().as_ref(), ()).unwrap();
+            arg.insert(i.into_cstr().as_ref(), &()).unwrap();
         }
 
         let props = NvList::new().unwrap();
@@ -183,7 +183,7 @@ impl Zfs {
         let mut snaps_nv = NvList::new().unwrap();
 
         for snap in snaps {
-            snaps_nv.insert(snap, ()).unwrap();
+            snaps_nv.insert(snap, &()).unwrap();
         }
 
         self.destroy_snaps_raw(&snaps_nv, defer)
@@ -245,7 +245,7 @@ impl Zfs {
         let mut args = NvList::new_unique_names().unwrap();
 
         // note: always include for compat with <=2.0.0
-        args.insert("force", force).unwrap();
+        args.insert("force", &force).unwrap();
 
         let v = unsafe {
             sys::lzc_sync(pool_name.as_ref().as_ptr(), args.as_ptr() as *mut _, ptr::null_mut())
@@ -462,29 +462,102 @@ impl Zfs {
         }
     }
 
-    /*
+    /// Create bookmarks from existing snapshot or bookmark
     #[doc(alias = "lzc_bookmark")]
-    pub fn bookmark(&self, bookmarks: &NvListRef) -> Result<(), (io::Error, NvList)> {
-        unimplemented!()
+    pub fn bookmark<I: IntoIterator<Item = (D, S)>, D: CStrArgument, S: CStrArgument>(&self, bookmarks: I) -> Result<(), Vec<(ffi::CString, io::Error)>> {
+        let mut bookmarks_nv = NvList::new().unwrap();
+
+        for (new_bm, src) in bookmarks {
+            let src = src.into_cstr();
+            bookmarks_nv.insert(new_bm, src.as_ref()).unwrap();
+        }
+
+        match self.bookmark_raw(&bookmarks_nv) {
+            Ok(a) => Ok(a),
+            Err((_, err_nv)) => {
+                todo!()
+                // TODO: iterate over `err_nv`
+                // TODO: correlate it with `bookmarks_nv`
+            }
+        }
     }
 
-    /// Corresponds to `lzc_get_bookmarks`
+    /// Create bookmarks from existing snapshot or bookmark
+    ///
+    /// The `bookmarks` nvlist is `[(full_name_of_new_bookmark,
+    /// full_name_of_source_snap_or_bookmark)]`.
+    ///
+    /// Corresponds to `lzc_bookmark()`
+    #[doc(alias = "lzc_bookmark")]
+    pub fn bookmark_raw(&self, bookmarks: &NvListRef) -> Result<(), (io::Error, NvList)> {
+        let mut err = ptr::null_mut();
+        let r = unsafe {
+            sys::lzc_bookmark(bookmarks.as_ptr() as *mut _, &mut err)
+        };
+
+        if r != 0 {
+            Err((io::Error::from_raw_os_error(r), unsafe { NvList::from_ptr(err) }))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Retreive bookmarks for the given filesystem
+    ///
+    /// `props` is a list of `[(prop_name, ())]`, where `prop_name` names a property on a bookmark.
+    /// All the named properties are returned in the return value as the values of each bookmark.
+    ///
+    /// Corresponds to `lzc_get_bookmarks()`
     #[doc(alias = "lzc_get_bookmarks")]
-    pub fn bookmarks<F: CStrArgument>(&self, fsname: F, props: &NvListRef) -> io::Result<NvList> {
-        unimplemented!()
+    pub fn get_bookmarks_raw<F: CStrArgument>(&self, fsname: F, props: &NvListRef) -> io::Result<NvList> {
+        let mut res = ptr::null_mut();
+        let fsname = fsname.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_get_bookmarks(fsname.as_ref().as_ptr(), props.as_ptr() as *mut _, &mut res)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(unsafe { NvList::from_ptr(res) })
+        }
     }
 
-    /// Corresponds to `lzc_get_bookmark_props`
+    /// Corresponds to `lzc_get_bookmark_props()`
     #[doc(alias = "lzc_get_bookmark_props")]
     pub fn bookmark_props<B: CStrArgument>(&self, bookmark: B) -> io::Result<NvList> {
-        unimplemented!()
+        let mut res = ptr::null_mut();
+        let bookmark = bookmark.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_get_bookmark_props(bookmark.as_ref().as_ptr(), &mut res)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(unsafe { NvList::from_ptr(res) })
+        }
     }
 
+    /// Corresponds to `lzc_destroy_bookmarks()`
     #[doc(alias = "lzc_destroy_bookmarks")]
     pub fn destroy_bookmarks(&self, bookmarks: &NvListRef) -> Result<(), (io::Error, NvList)> {
-        unimplemented!()
+        let mut errs = ptr::null_mut();
+        
+        let r = unsafe {
+            sys::lzc_destroy_bookmarks(bookmarks.as_ptr() as *mut _, &mut errs)
+        };
+
+        if r != 0 {
+            Err((io::Error::from_raw_os_error(r), unsafe { NvList::from_ptr(errs) }))
+        } else {
+            Ok(())
+        }
     }
 
+    /*
     // 0.8.?
     #[doc(alias = "lzc_channel_program")]
     pub fn channel_program<P: CStrArgument, R: CStrArgument>(&self, pool: P, program: R, instruction_limit: u64, memlimit: u64, args: &NvListRef) -> io::Result<NvList> {
