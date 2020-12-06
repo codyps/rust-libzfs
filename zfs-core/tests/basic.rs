@@ -64,6 +64,41 @@ impl TempFs {
     pub fn path(&self) -> &str {
         &self.path
     }
+
+    pub fn mount(&self) -> TempMount {
+        TempMount::new(self)
+    }
+}
+
+struct TempMount<'a> {
+    tempfs: &'a TempFs,
+    mount_dir: tempfile::TempDir,
+}
+
+impl<'a> TempMount<'a> {
+    pub fn new(tempfs: &'a TempFs) -> Self {
+        let mount_dir = tempfile::tempdir().unwrap();
+
+        std::process::Command::new("mount")
+            .arg("-t").arg("zfs")
+            .arg(&tempfs.path)
+            .arg(mount_dir.path())
+            .status().unwrap();
+
+        Self {
+            tempfs,
+            mount_dir,
+        }
+    }
+}
+
+impl<'a> Drop for TempMount<'a> {
+    fn drop(&mut self) {
+        if let Err(e) = std::process::Command::new("umount")
+            .arg(self.mount_dir.path()).status() {
+            eprintln!("Could not unmount TempMount: {:?}: {}", self.mount_dir.path(), e);
+        }
+    }
 }
 
 impl Drop for TempFs {
@@ -142,17 +177,14 @@ fn snapshot() {
 
     assert_eq!(z.exists(&b), true);
 
-    let props = nvpair::NvList::new().unwrap();
-    let mut snaps = nvpair::NvList::new().unwrap();
     let mut b_snap = b.clone();
     b_snap.push_str("@a");
-    snaps.insert(&b_snap, ()).unwrap();
-    z.snapshot(&snaps, &props).unwrap();
+    z.snapshot([b_snap.as_str()].iter().cloned()).unwrap();
 
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_snap), true);
 
-    z.destroy_snaps(&snaps, zfs::Defer::No).unwrap();
+    z.destroy_snaps([b_snap.as_str()].iter().cloned(), zfs::Defer::No).unwrap();
     z.destroy(&b).unwrap();
 }
 
@@ -176,21 +208,17 @@ fn snapshot_multi() {
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_alt), true);
 
-    let props = nvpair::NvList::new().unwrap();
-    let mut snaps = nvpair::NvList::new().unwrap();
     let mut b_snap1 = b.clone();
     b_snap1.push_str("@a");
-    snaps.insert(&b_snap1, ()).unwrap();
     let mut b_snap2 = b_alt.clone();
     b_snap2.push_str("@b");
-    snaps.insert(&b_snap2, ()).unwrap();
-    z.snapshot(&snaps, &props).unwrap();
+    z.snapshot([b_snap1.as_str(), b_snap2.as_str()].iter().cloned()).unwrap();
 
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_snap1), true);
     assert_eq!(z.exists(&b_snap2), true);
 
-    z.destroy_snaps(&snaps, zfs::Defer::No).unwrap();
+    z.destroy_snaps([b_snap1.as_str(), b_snap2.as_str()].iter().cloned(), zfs::Defer::No).unwrap();
     z.destroy(&b).unwrap();
 }
 
@@ -214,15 +242,11 @@ fn hold_raw() {
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_alt), true);
 
-    let props = nvpair::NvList::new().unwrap();
-    let mut snaps = nvpair::NvList::new().unwrap();
     let mut b_snap1 = b.clone();
     b_snap1.push_str("@a");
-    snaps.insert(&b_snap1, ()).unwrap();
     let mut b_snap2 = b_alt.clone();
     b_snap2.push_str("@b");
-    snaps.insert(&b_snap2, ()).unwrap();
-    z.snapshot(&snaps, &props).unwrap();
+    z.snapshot([b_snap1.as_str(), b_snap2.as_str()].iter().cloned()).unwrap();
 
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_snap1), true);
@@ -232,7 +256,7 @@ fn hold_raw() {
     hold_snaps.insert(&b_snap1, "hold-hello").unwrap();
     z.hold_raw(&hold_snaps, None).unwrap();
 
-    z.destroy_snaps(&snaps, zfs::Defer::Yes).unwrap();
+    z.destroy_snaps([b_snap1.as_str(), b_snap2.as_str()].iter().cloned(), zfs::Defer::Yes).unwrap();
 
     assert_eq!(z.exists(&b_snap1), true);
     assert_eq!(z.exists(&b_snap2), false);
@@ -266,12 +290,9 @@ fn send_recv() {
     assert_eq!(z.exists(&fs1), true);
     assert_eq!(z.exists(&fs2), false);
 
-    let props = nvpair::NvList::new().unwrap();
-    let mut snaps = nvpair::NvList::new().unwrap();
     let mut snap1 = fs1.clone();
     snap1.push_str("@a");
-    snaps.insert(&snap1, ()).unwrap();
-    z.snapshot(&snaps, &props).unwrap();
+    z.snapshot([snap1.as_str()].iter().cloned()).unwrap();
 
     let mut snap2 = fs2.clone();
     snap2.push_str("@b");
@@ -292,6 +313,82 @@ fn send_recv() {
     z.destroy(&fs2).unwrap();
 }
 
+#[test]
+fn rollback() {
+    let tmpfs = TempFs::new("rollback").unwrap();
+    let mut fs1 = tmpfs.path().to_owned();
+    fs1.push_str("/");
+    fs1.push_str("1");
+
+    let z = zfs::Zfs::new().unwrap();
+    let nv = nvpair::NvList::new().unwrap();
+    z.create(&fs1, zfs::DataSetType::Zfs, &nv)
+        .expect(&format!("create {:?} failed", fs1));
+
+    assert_eq!(z.exists(&fs1), true);
+
+    let props = nvpair::NvList::new().unwrap();
+    let mut snap1 = fs1.clone();
+
+    {
+        snap1.push_str("@a");
+        let mut snaps = nvpair::NvList::new().unwrap();
+        snaps.insert(&snap1, ()).unwrap();
+        z.snapshot_raw(&snaps, &props).unwrap();
+    }
+
+    let mut snap2 = fs1.clone();
+
+    {
+        snap2.push_str("@b");
+        let mut snaps = nvpair::NvList::new().unwrap();
+        snaps.insert(&snap2, ()).unwrap();
+        z.snapshot_raw(&snaps, &props).unwrap();
+    }
+
+    assert_eq!(z.rollback(&fs1).unwrap().to_str().unwrap(), snap2);
+
+    assert_eq!(z.exists(&fs1), true);
+    assert_eq!(z.exists(&snap1), true);
+    assert_eq!(z.exists(&snap2), true);
+
+    z.destroy(&snap2).unwrap();
+    z.destroy(&snap1).unwrap();
+    z.destroy(&fs1).unwrap();
+}
+
+#[test]
+fn rollback_to() {
+    let tmpfs = TempFs::new("rollback_to").unwrap();
+    let mut fs1 = tmpfs.path().to_owned();
+    fs1.push_str("/");
+    fs1.push_str("1");
+
+    let z = zfs::Zfs::new().unwrap();
+    let nv = nvpair::NvList::new().unwrap();
+    z.create(&fs1, zfs::DataSetType::Zfs, &nv)
+        .expect(&format!("create {:?} failed", fs1));
+
+    assert_eq!(z.exists(&fs1), true);
+
+    let mut snap1 = fs1.clone();
+    snap1.push_str("@a");
+    z.snapshot([&snap1].iter().cloned()).unwrap();
+
+    let mut snap2 = fs1.clone();
+    snap2.push_str("@b");
+    z.snapshot([&snap2].iter().cloned()).unwrap();
+
+    z.destroy(&snap2);
+    z.rollback_to(&fs1, &snap1).unwrap();
+
+    assert_eq!(z.exists(&fs1), true);
+    assert_eq!(z.exists(&snap1), true);
+    assert_eq!(z.exists(&snap2), false);
+
+    z.destroy(&snap1).unwrap();
+    z.destroy(&fs1).unwrap();
+}
 #[cfg(features = "v2_00")]
 #[test]
 fn bootenv() {
