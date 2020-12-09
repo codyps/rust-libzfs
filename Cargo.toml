@@ -2,3 +2,7 @@
 [workspace]
 members = ['zfs-core-sys', 'zfs-core', 'nvpair-sys', 'nvpair']
 exclude = ['systest']
+
+
+#[patch.crates-io]
+#cstr-argument = { path = '../cstr-argument' }

@@ -1,13 +1,29 @@
 #![warn(missing_debug_implementations, rust_2018_idioms)]
 
+use snafu::{Snafu, ResultExt};
 use cstr_argument::CStrArgument;
 use foreign_types::ForeignType;
-use nvpair::{NvList, NvListRef};
+use nvpair::{NvList, NvListRef, NvListIter};
 use std::marker::PhantomData;
 use std::{fmt, io, ptr, ffi};
 use std::convert::TryInto;
 use std::os::unix::io::RawFd;
 use zfs_core_sys as sys;
+
+// TODO: consider splitting this into specific error kinds per operation
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("libzfs_core call failed with {}", source))]
+    Io {
+        source: io::Error
+    },
+    #[snafu(display("libzfs_core call failed for these entries {}", source))]
+    List {
+        source: ErrorList
+    },
+}
+
+//pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// A handle to work with Zfs pools, datasets, etc
 // Note: the Drop for this makes clone-by-copy unsafe. Could clone by just calling new().
@@ -40,6 +56,93 @@ impl DataSetType {
     }
 }
 
+/// Generic list of errors return from various `lzc_*` calls.
+///
+/// The first item (the `name`) is the thing we were operating on (creating, destroying, etc) that cause the error,
+/// and the second (the `error`) is the translated error code
+///
+/// Note that there is a special `name` "N_MORE_ERRORS" which is a count of errors not listed
+#[derive(Debug)]
+pub struct ErrorList {
+    nv: NvList,
+}
+
+impl ErrorList {
+    pub fn into_raw(self) -> NvList {
+        self.nv
+    }
+
+    pub fn as_raw(&self) -> &NvListRef {
+        &self.nv
+    }
+
+    pub fn as_raw_mut(&mut self) -> &mut NvListRef {
+        &mut self.nv
+    }
+}
+
+impl std::error::Error for ErrorList {}
+
+impl From<NvList> for ErrorList {
+    fn from(nv: NvList) -> Self {
+        // TODO: consider examining shape of the error list here
+        Self { nv }
+    }
+}
+
+impl<'a> IntoIterator for &'a ErrorList {
+    type Item = (&'a ffi::CStr, io::Error);
+    type IntoIter = ErrorListIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ErrorListIter { nvi: self.nv.iter() }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ErrorListIter<'a> {
+    nvi: NvListIter<'a>
+}
+
+impl<'a> fmt::Display for ErrorListIter<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_list().entries(self.clone()).finish() 
+    }
+}
+
+impl fmt::Display for ErrorList {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.into_iter(), fmt)
+    }
+}
+
+impl<'a> Iterator for ErrorListIter<'a> {
+    type Item = (&'a ffi::CStr, io::Error);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.nvi.next() {
+            Some(np) => {
+                let name = np.name();
+                let data = np.data();
+
+                match data {
+                    nvpair::NvData::Int32(v) => {
+                        Some((name, io::Error::from_raw_os_error(v)))
+                    },
+                    _ => {
+                        // TODO: consider validating early. alternately: consider emitting
+                        // something reasonable here. we're already an error path, so being 100%
+                        // precise is probably not required.
+                        panic!("unhandled error type for name {:?}: {:?}", name, data);
+                    }
+                }
+            }
+            None => None,
+        }
+    }
+}
+
+
 impl Zfs {
     /// Create a handle to the Zfs subsystem
     #[doc(alias = "libzfs_core_init")]
@@ -53,6 +156,8 @@ impl Zfs {
         }
     }
 
+    /// Create a new dataset of the given type with `props` set as properties
+    ///
     /// Corresponds to `lzc_create()`
     #[doc(alias = "lzc_create")]
     pub fn create<S: CStrArgument>(
@@ -136,16 +241,21 @@ impl Zfs {
     }
 
     /// Create snapshot(s)
+    ///
+    /// The snapshots must be from the same pool, and must not reference the same dataset (iow:
+    /// cannot create 2 snapshots of the same filesystem).
+    ///
+    /// Corresponds to `lzc_snapshot()`.
     #[doc(alias = "lzc_snapshot")]
     #[doc(alias = "snapshot_raw")]
     pub fn snapshot<I: IntoIterator<Item=S>, S: CStrArgument>(&self, snaps: I) -> Result<(), (io::Error, Option<NvList>)> {
-        let mut arg = NvList::new().unwrap();
+        let mut arg = NvList::new();
 
         for i in snaps {
             arg.insert(i.into_cstr().as_ref(), &()).unwrap();
         }
 
-        let props = NvList::new().unwrap();
+        let props = NvList::new();
         self.snapshot_raw(&arg, &props)
     }
 
@@ -180,7 +290,7 @@ impl Zfs {
     #[doc(alias = "destroy_snaps_raw")]
     #[doc(alias = "lzc_destroy_snaps")]
     pub fn destroy_snaps<I: IntoIterator<Item = S>, S: CStrArgument>(&self, snaps: I, defer: Defer) -> Result<(), (io::Error, NvList)> {
-        let mut snaps_nv = NvList::new().unwrap();
+        let mut snaps_nv = NvList::new();
 
         for snap in snaps {
             snaps_nv.insert(snap, &()).unwrap();
@@ -242,7 +352,7 @@ impl Zfs {
     #[doc(alias = "lzc_sync")]
     pub fn sync<S: CStrArgument>(&self, pool_name: S, force: bool) -> io::Result<()> {
         let pool_name = pool_name.into_cstr();
-        let mut args = NvList::new_unique_names().unwrap();
+        let mut args = NvList::new_unique_names();
 
         // note: always include for compat with <=2.0.0
         args.insert("force", &force).unwrap();
@@ -265,28 +375,90 @@ impl Zfs {
     /// The snapshots must all be in the same pool.
     /// The value is the name of the hold (string type).
     #[doc(alias = "lzc_hold")]
-    pub fn hold_raw(&self, holds: &NvListRef, cleanup_fd: Option<RawFd>) -> Result<(), (io::Error, Option<NvList>)> {
+    pub fn hold_raw(&self, holds: &NvListRef, cleanup_fd: Option<RawFd>) -> Result<(), Result<io::Error, NvList>> {
         let mut errs = ptr::null_mut();
         let v = unsafe { sys::lzc_hold(holds.as_ptr() as *mut _, cleanup_fd.unwrap_or(-1), &mut errs) };
         if v != 0 {
-            let e = if errs.is_null() {
-                None
+            // if we have an error list, the return value error is just one of the errors in the
+            // list.
+            if errs.is_null() {
+                Err(Ok(io::Error::from_raw_os_error(v)))
             } else {
-                Some(unsafe { NvList::from_ptr(errs)})
-            };
-            Err((io::Error::from_raw_os_error(v), e))
+                Err(Err(unsafe { NvList::from_ptr(errs)}))
+            }
         } else {
             Ok(())
         }
     }
 
+    /// Create a set of holds, each on a given snapshot
+    ///
+    /// Related: [`get_holds`], [`release`], [`hold_raw`], [`release_raw`].
+    ///
+    /// Corresponds to `lzc_hold`.
+    #[doc(alias = "lzc_hold")]
+    pub fn hold<'a, H, S, N>(&self, holds: H, cleanup_fd: Option<RawFd>) -> Result<(), Error>
+        where H: IntoIterator<Item = &'a (S, N)>,
+              S: 'a + CStrArgument + Clone,
+              N: 'a + CStrArgument + Clone
+    {
+        let mut holds_nv = NvList::new();
+
+        for he in holds {
+            let ds = he.0.clone().into_cstr();
+            let name = he.1.clone().into_cstr();
+            holds_nv.insert(ds.as_ref(), name.as_ref()).unwrap();
+        }
+
+        match self.hold_raw(&holds_nv, cleanup_fd) {
+            Ok(a) => Ok(a),
+            Err(Ok(v)) => Err(Error::Io { source: v }),
+            Err(Err(v)) => Err(Error::List { source: v.into() }),
+        }
+    }
+
+    /// Corresponds to `lzc_release`.
     #[doc(alias = "lzc_release")]
-    pub fn release_raw(&self, holds: &NvListRef) -> Result<(), io::Error> {
-        let v = unsafe { sys::lzc_release(holds.as_ptr() as *mut _, /* errlist: */ptr::null_mut()) };
+    pub fn release_raw(&self, holds: &NvListRef) -> Result<(), Result<io::Error, NvList>> {
+        let mut errs = ptr::null_mut();
+        let v = unsafe { sys::lzc_release(holds.as_ptr() as *mut _, &mut errs) };
         if v != 0 {
-            Err(io::Error::from_raw_os_error(v))
+            if errs.is_null() {
+                Err(Ok(io::Error::from_raw_os_error(v)))
+            } else {
+                Err(Err(unsafe { NvList::from_ptr(errs) }))
+            }
         } else {
             Ok(())
+        }
+    }
+
+    /// For a list of datasets, release one or more holds by name
+    ///
+    /// Corresponds to `lzc_release`.
+    #[doc(alias = "lzc_release")]
+    pub fn release<'a, F, C, H, N>(&self, holds: F) -> Result<(), Error> 
+        where F: IntoIterator<Item = &'a (C, H)>,
+              C: 'a + CStrArgument + Clone,
+              H: 'a + IntoIterator<Item = N> + Clone,
+              N: 'a + CStrArgument + Clone
+    {
+        let mut r_nv = NvList::new();
+
+        for hi in holds {
+            let mut hold_nv = NvList::new();
+    
+            for hold_name in hi.1.clone() {
+                hold_nv.insert(hold_name, &()).unwrap();
+            }
+
+            r_nv.insert(hi.0.clone(), hold_nv.as_ref()).unwrap();
+        }
+
+        match self.release_raw(&r_nv) {
+            Ok(a) => Ok(a),
+            Err(Ok(v)) => Err(Error::Io { source: v }),
+            Err(Err(v)) => Err(Error::List { source: v.into()}),
         }
     }
 
@@ -294,7 +466,7 @@ impl Zfs {
     ///
     /// Corresponds to `lzc_get_holds()`
     #[doc(alias = "lzc_get_holds")]
-    pub fn holds<S: CStrArgument>(&self, snapname: S) -> io::Result<NvList> {
+    pub fn get_holds<S: CStrArgument>(&self, snapname: S) -> io::Result<NvList> {
         let snapname = snapname.into_cstr();
         let mut holds = ptr::null_mut();
         let v = unsafe { sys::lzc_get_holds(snapname.as_ref().as_ptr(), &mut holds) };
@@ -381,7 +553,7 @@ impl Zfs {
         };
 
         if r != 0 {
-            Err(io::Error::from_raw_os_error(-r))
+            Err(io::Error::from_raw_os_error(r))
         } else {
             Ok(())
         }
@@ -401,7 +573,7 @@ impl Zfs {
         };
 
         if r != 0 {
-            Err(io::Error::from_raw_os_error(-r))
+            Err(io::Error::from_raw_os_error(r))
         } else {
             Ok(())
         }
@@ -464,8 +636,8 @@ impl Zfs {
 
     /// Create bookmarks from existing snapshot or bookmark
     #[doc(alias = "lzc_bookmark")]
-    pub fn bookmark<I: IntoIterator<Item = (D, S)>, D: CStrArgument, S: CStrArgument>(&self, bookmarks: I) -> Result<(), Vec<(ffi::CString, io::Error)>> {
-        let mut bookmarks_nv = NvList::new().unwrap();
+    pub fn bookmark<I: IntoIterator<Item = (D, S)>, D: CStrArgument, S: CStrArgument>(&self, bookmarks: I) -> Result<(), ErrorList> {
+        let mut bookmarks_nv = NvList::new();
 
         for (new_bm, src) in bookmarks {
             let src = src.into_cstr();
@@ -474,11 +646,7 @@ impl Zfs {
 
         match self.bookmark_raw(&bookmarks_nv) {
             Ok(a) => Ok(a),
-            Err((_, err_nv)) => {
-                todo!()
-                // TODO: iterate over `err_nv`
-                // TODO: correlate it with `bookmarks_nv`
-            }
+            Err((_, err_nv)) => Err(ErrorList::from(err_nv))
         }
     }
 
@@ -526,7 +694,7 @@ impl Zfs {
 
     /// Corresponds to `lzc_get_bookmark_props()`
     #[doc(alias = "lzc_get_bookmark_props")]
-    pub fn bookmark_props<B: CStrArgument>(&self, bookmark: B) -> io::Result<NvList> {
+    pub fn get_bookmark_props<B: CStrArgument>(&self, bookmark: B) -> io::Result<NvList> {
         let mut res = ptr::null_mut();
         let bookmark = bookmark.into_cstr();
 
@@ -648,7 +816,7 @@ impl Zfs {
 
     #[cfg(features = "v2_00")]
     #[doc(alias = "lzc_get_bootenv")]
-    pub fn bootenv<P: CStrArgument>(&self, pool: P) -> io::Result<NvList> {
+    pub fn get_bootenv<P: CStrArgument>(&self, pool: P) -> io::Result<NvList> {
         let pool = pool.into_cstr();
         let mut env = ptr::null_mut();
         let v = unsafe { sys::lzc_get_bootenv(pool.as_ref().as_ptr(), &mut env) };

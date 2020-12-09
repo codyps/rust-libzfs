@@ -26,7 +26,7 @@ fn tmp_zpool_name() -> String {
 impl TempFs {
     fn with_base(base: &str, prefix: &str) -> io::Result<TempFs> {
         let z = zfs::Zfs::new()?;
-        let nv = nvpair::NvList::new()?;
+        let nv = nvpair::NvList::try_new()?;
 
         let rng = thread_rng();
         for _ in 0..NUM_RETRIES {
@@ -65,11 +65,14 @@ impl TempFs {
         &self.path
     }
 
+    /*
     pub fn mount(&self) -> TempMount {
         TempMount::new(self)
     }
+    */
 }
 
+/*
 struct TempMount<'a> {
     tempfs: &'a TempFs,
     mount_dir: tempfile::TempDir,
@@ -100,6 +103,7 @@ impl<'a> Drop for TempMount<'a> {
         }
     }
 }
+*/
 
 impl Drop for TempFs {
     fn drop(&mut self) {
@@ -124,7 +128,7 @@ fn create_destroy() {
     b.push_str("create");
 
     let z = zfs::Zfs::new().unwrap();
-    let nv = nvpair::NvList::new().unwrap();
+    let nv = nvpair::NvList::new();
     z.create(&b, zfs::DataSetType::Zfs, &nv)
         .expect(&format!("create {:?} failed", b));
 
@@ -147,7 +151,7 @@ fn rename() {
     b_new.push_str("new");
 
     let z = zfs::Zfs::new().unwrap();
-    let nv = nvpair::NvList::new().unwrap();
+    let nv = nvpair::NvList::new();
     z.create(&b, zfs::DataSetType::Zfs, &nv)
         .expect(&format!("create {:?} failed", b));
 
@@ -171,7 +175,7 @@ fn snapshot() {
     b_new.push_str("clone");
 
     let z = zfs::Zfs::new().unwrap();
-    let nv = nvpair::NvList::new().unwrap();
+    let nv = nvpair::NvList::new();
     z.create(&b, zfs::DataSetType::Zfs, &nv)
         .expect(&format!("create {:?} failed", b));
 
@@ -199,7 +203,7 @@ fn snapshot_multi() {
     b_alt.push_str("2");
 
     let z = zfs::Zfs::new().unwrap();
-    let nv = nvpair::NvList::new().unwrap();
+    let nv = nvpair::NvList::new();
     z.create(&b, zfs::DataSetType::Zfs, &nv)
         .expect(&format!("create {:?} failed", b));
     z.create(&b_alt, zfs::DataSetType::Zfs, &nv)
@@ -233,7 +237,7 @@ fn hold_raw() {
     b_alt.push_str("2");
 
     let z = zfs::Zfs::new().unwrap();
-    let nv = nvpair::NvList::new().unwrap();
+    let nv = nvpair::NvList::new();
     z.create(&b, zfs::DataSetType::Zfs, &nv)
         .expect(&format!("create {:?} failed", b));
     z.create(&b_alt, zfs::DataSetType::Zfs, &nv)
@@ -252,7 +256,7 @@ fn hold_raw() {
     assert_eq!(z.exists(&b_snap1), true);
     assert_eq!(z.exists(&b_snap2), true);
 
-    let mut hold_snaps = nvpair::NvList::new().unwrap();
+    let mut hold_snaps = nvpair::NvList::new();
     hold_snaps.insert(&b_snap1, "hold-hello").unwrap();
     z.hold_raw(&hold_snaps, None).unwrap();
 
@@ -261,8 +265,8 @@ fn hold_raw() {
     assert_eq!(z.exists(&b_snap1), true);
     assert_eq!(z.exists(&b_snap2), false);
 
-    let mut release_snaps = nvpair::NvList::new().unwrap();
-    let mut holds_for_snap = nvpair::NvList::new().unwrap();
+    let mut release_snaps = nvpair::NvList::new();
+    let mut holds_for_snap = nvpair::NvList::new();
     holds_for_snap.insert("hold-hello", &()).unwrap();
     release_snaps.insert(&b_snap1, holds_for_snap.as_ref()).unwrap();
     z.release_raw(&release_snaps).unwrap();
@@ -271,6 +275,74 @@ fn hold_raw() {
     assert_eq!(z.exists(&b_snap2), false);
 
     z.destroy(&b).unwrap();
+}
+
+/// hold: EINVAL: path doesn't look like a snapshot (no `@`)
+#[test]
+fn hold_not_snap() {
+    let tmpfs = TempFs::new("hold_not_snap").unwrap();
+
+    let z = zfs::Zfs::new().unwrap();
+    let e = z.hold([
+        (tmpfs.path().to_owned() + "/2", "doesn't look like snapshot"),
+    ].iter(), None);
+
+    let e = if let Err(e) = e {
+        e
+    } else {
+        panic!("expected an error");
+    };
+
+    let e = if let zfs_core::Error::Io { source: e } = e {
+        e
+    } else {
+        panic!("expected io, got {:?}", e);
+    };
+
+    assert_eq!(e.kind(), io::ErrorKind::InvalidInput);
+}
+
+/// hold: NotFound: snapshot named doesn't exist
+#[test]
+fn hold_not_exist() {
+    let tmpfs = TempFs::new("hold_non_exist").unwrap();
+
+    let z = zfs::Zfs::new().unwrap();
+    let e = z.hold([
+        (tmpfs.path().to_owned() + "/1@snap", "snap doesn't exist"),
+    ].iter(), None);
+
+    let e = if let Err(e) = e {
+        e
+    } else {
+        panic!("expected an error");
+    };
+
+    let e = if let zfs_core::Error::Io { source: e } = e {
+        e
+    } else {
+        panic!("expected io, got {:?}", e);
+    };
+
+    assert_eq!(e.kind(), io::ErrorKind::NotFound);
+}
+
+#[test]
+fn hold_ok() {
+    let tmpfs = TempFs::new("hold_ok").unwrap();
+    let z = zfs::Zfs::new().unwrap();
+
+    let props = nvpair::NvList::new();
+    z.create(tmpfs.path().to_owned() + "/1", zfs::DataSetType::Zfs, &props).unwrap();
+    z.snapshot([tmpfs.path().to_owned() + "/1@snap"].iter().cloned()).unwrap();
+
+    z.hold([
+        (tmpfs.path().to_owned() + "/1@snap", "test-hold-ok")
+    ].iter(), None).unwrap();
+
+    z.release([
+        (tmpfs.path().to_owned() + "/1@snap", ["test-hold-ok"].iter().cloned())
+    ].iter()).unwrap();
 }
 
 #[test]
@@ -283,7 +355,7 @@ fn send_recv() {
     fs2.push_str("2");
 
     let z = zfs::Zfs::new().unwrap();
-    let nv = nvpair::NvList::new().unwrap();
+    let nv = nvpair::NvList::new();
     z.create(&fs1, zfs::DataSetType::Zfs, &nv)
         .expect(&format!("create {:?} failed", fs1));
 
@@ -321,18 +393,18 @@ fn rollback() {
     fs1.push_str("1");
 
     let z = zfs::Zfs::new().unwrap();
-    let nv = nvpair::NvList::new().unwrap();
+    let nv = nvpair::NvList::new();
     z.create(&fs1, zfs::DataSetType::Zfs, &nv)
         .expect(&format!("create {:?} failed", fs1));
 
     assert_eq!(z.exists(&fs1), true);
 
-    let props = nvpair::NvList::new().unwrap();
+    let props = nvpair::NvList::new();
     let mut snap1 = fs1.clone();
 
     {
         snap1.push_str("@a");
-        let mut snaps = nvpair::NvList::new().unwrap();
+        let mut snaps = nvpair::NvList::new();
         snaps.insert(&snap1, &()).unwrap();
         z.snapshot_raw(&snaps, &props).unwrap();
     }
@@ -341,7 +413,7 @@ fn rollback() {
 
     {
         snap2.push_str("@b");
-        let mut snaps = nvpair::NvList::new().unwrap();
+        let mut snaps = nvpair::NvList::new();
         snaps.insert(&snap2, &()).unwrap();
         z.snapshot_raw(&snaps, &props).unwrap();
     }
@@ -365,7 +437,7 @@ fn rollback_to() {
     fs1.push_str("1");
 
     let z = zfs::Zfs::new().unwrap();
-    let nv = nvpair::NvList::new().unwrap();
+    let nv = nvpair::NvList::new();
     z.create(&fs1, zfs::DataSetType::Zfs, &nv)
         .expect(&format!("create {:?} failed", fs1));
 
