@@ -346,6 +346,40 @@ fn hold_ok() {
 }
 
 #[test]
+fn get_holds() {
+    let tmpfs = TempFs::new("get_holds").unwrap();
+    let z = zfs::Zfs::new().unwrap();
+
+    let props = nvpair::NvList::new();
+    z.create(tmpfs.path().to_owned() + "/1", zfs::DataSetType::Zfs, &props).unwrap();
+    z.snapshot([tmpfs.path().to_owned() + "/1@snap"].iter().cloned()).unwrap();
+
+    z.hold([
+        (tmpfs.path().to_owned() + "/1@snap", "test-hold-ok")
+    ].iter(), None).unwrap();
+
+
+    let holds = z.get_holds(tmpfs.path().to_owned() + "/1@snap").unwrap();
+    
+    let mut expected_holds = std::collections::HashSet::new();
+    expected_holds.insert("test-hold-ok");
+    for h in holds.as_ref() {
+        let (v, d) = h.tuple();
+
+        if let nvpair::NvData::Uint64(_) = d {
+            // ok
+        } else {
+            panic!("unexpected data for hold {:?}: {:?}", v, d);
+        }
+        assert_eq!(true, expected_holds.remove(v.to_str().unwrap()));
+    }
+
+    z.release([
+        (tmpfs.path().to_owned() + "/1@snap", ["test-hold-ok"].iter().cloned())
+    ].iter()).unwrap();
+}
+
+#[test]
 fn send_recv() {
     let tmpfs = TempFs::new("send_recv").unwrap();
     let mut fs1 = tmpfs.path().to_owned();
