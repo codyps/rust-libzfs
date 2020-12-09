@@ -152,8 +152,11 @@ foreign_type! {
 }
 
 impl NvList {
-    /// Create a new `NvList` with no options
-    pub fn new() -> io::Result<Self> {
+    /// Try to create a new `NvList` with no options.
+    ///
+    /// Returns an error if memory allocation fails
+    #[doc(alias = "nvlist_alloc")]
+    pub fn try_new() -> io::Result<Self> {
         let mut n = ptr::null_mut();
         let v = unsafe {
             // TODO: second arg is a bitfield of NV_UNIQUE_NAME|NV_UNIQUE_NAME_TYPE
@@ -166,8 +169,11 @@ impl NvList {
         }
     }
 
-    /// Create a new `NvList` with the `NV_UNIQUE_NAME` constraint
-    pub fn new_unique_names() -> io::Result<Self> {
+    /// Try to create a new `NvList` with the `NV_UNIQUE_NAME` constraint
+    ///
+    /// Returns an error if memory allocation fails
+    #[doc(alias = "nvlist_alloc")]
+    pub fn try_new_unique_names() -> io::Result<Self> {
         let mut n = ptr::null_mut();
         let v = unsafe { sys::nvlist_alloc(&mut n, sys::NV_UNIQUE_NAME, 0) };
         if v != 0 {
@@ -175,6 +181,26 @@ impl NvList {
         } else {
             Ok(unsafe { Self::from_ptr(n) })
         }
+    }
+
+    /// Create a new `NvList` with no options
+    ///
+    /// # Panics
+    ///
+    ///  - if [`try_new()`] returns an error
+    #[doc(alias = "nvlist_alloc")]
+    pub fn new() -> Self {
+        Self::try_new().unwrap()
+    }
+
+    /// Create a new `NvList` with the `NV_UNIQUE_NAME` constraint
+    ///
+    /// # Panics
+    ///
+    ///  - if [`try_new_unique_names()`] returns an error
+    #[doc(alias = "nvlist_alloc")]
+    pub fn new_unique_names() -> Self {
+        Self::try_new_unique_names().unwrap()
     }
 
     pub fn try_clone(&self) -> io::Result<Self> {
@@ -408,6 +434,7 @@ impl NvListRef {
         }
     }
 
+    // TODO: consider renaming to `try_insert()` and having a `insert()` with an inner unwrap.
     pub fn insert<S: CStrArgument, D: NvEncode + ?Sized>(&mut self, name: S, data: &D) -> io::Result<()> {
         data.insert_into(name, self)
     }
@@ -435,6 +462,25 @@ impl std::fmt::Debug for NvListRef {
     }
 }
 
+impl<'a> IntoIterator for &'a NvListRef {
+    type Item = &'a NvPair;
+    type IntoIter = NvListIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a NvList {
+    type Item = &'a NvPair;
+    type IntoIter = NvListIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+#[derive(Clone)]
 pub struct NvListIter<'a> {
     parent: &'a NvListRef,
     pos: *mut sys::nvpair,
@@ -442,7 +488,7 @@ pub struct NvListIter<'a> {
 
 impl<'a> fmt::Debug for NvListIter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("NvListIter").finish()
+        f.debug_list().entries(self.clone()).finish()
     }
 }
 
@@ -470,6 +516,9 @@ impl NvPair {
         unsafe { ffi::CStr::from_ptr(sys::nvpair_name(self.as_ptr())) }
     }
 
+    // TODO: consider defering decode here until actually requested by the caller. Users of
+    // `data` might not care to decode most data types, meaning we're waisting time with the
+    // various `nvpair_value_*()` calls some of the time.
     pub fn data(&self) -> NvData<'_> {
         let data_type = unsafe { sys::nvpair_type(self.as_ptr()) };
 
@@ -585,6 +634,10 @@ impl NvPair {
             }
             _ => NvData::Unknown,
         }
+    }
+
+    pub fn tuple(&self) -> (&ffi::CStr, NvData<'_>) {
+        (self.name(), self.data())
     }
 }
 
