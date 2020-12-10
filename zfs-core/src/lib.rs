@@ -477,6 +477,10 @@ impl Zfs {
         }
     }
     
+    /// Send the described stream
+    ///
+    /// Internally, is a wrapper around [`send_resume_redacted()`]
+    ///
     /// Corresponds to `lzc_send()`
     #[doc(alias = "lzc_send")]
     pub fn send<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: Option<F>, fd: RawFd, flags: SendFlags) -> io::Result<()> {
@@ -491,6 +495,10 @@ impl Zfs {
         }
     }
 
+    /// Send the described redacted stream
+    ///
+    /// Internally, is a wrapper around [`send_resume_redacted()`]
+    ///
     /// Corresponds to `lzc_send_redacted()`
     #[doc(alias = "lzc_send_redacted")]
     #[cfg(features = "v2_00")]
@@ -507,6 +515,10 @@ impl Zfs {
         }
     }
 
+    /// Send the described stream with resume information
+    ///
+    /// Internally, this is a wrapper around [`send_resume_redacted()`].
+    ///
     /// Corresponds to `lzc_send_resume()`
     #[doc(alias = "lzc_send_resume")]
     pub fn send_resume<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, flags: SendFlags, resume_obj: u64, resume_off: u64) -> io::Result<()> {
@@ -523,23 +535,72 @@ impl Zfs {
         }
     }
 
-    /*
+    /// Send the described stream with resume and redact info
+    ///
     /// Corresponds to `lzc_send_resume_redacted()`
+    #[doc(alias = "lzc_send_resume_redacted")]
     #[cfg(features = "v2_00")]
-    pub fn send_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, _snapname: S, _from: F, _fd: RawFd, _resume_obj: u64, _resume_off: u64, _redactbook: R) -> io::Result<()> {
-        unimplemented!()
+    pub fn send_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, fd: RawFd, flags: SendFlags, resume_obj: u64, resume_off: u64, redactbook: R) -> io::Result<()> {
+        let snapname = snapname.into_cstr();
+        let from = from.into_cstr();
+        let redactbook = redactbook.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_send_resume_redacted(snapname.as_ref().as_ptr(), from.as_ref().as_ptr(), fd, flags.into(), resume_obj, resume_off, redactbook.as_ref().as_ptr())
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(())
+        }
     }
 
+    /// Estimate the size of a send stream
+    ///
+    /// Corresponds to `lzc_send_space_resume_redacted()`
+    // FIXME: many parameters should probably be `Option<T>`
+    // TODO: consider passing arguments here as a struct so we can use names
+    #[doc(alias = "lzc_send_space_resume_redacted")]
+    #[cfg(features = "v2_00")]
+    pub fn send_space_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, flags: SendFlags, resume_obj: u64, resume_off: u64, resume_bytes: u64, redactbook: R, fd: RawFd) -> io::Result<u64> {
+        let snapname = snapname.into_cstr();
+        let from = from.into_cstr();
+
+        let mut space = 0;
+
+        let r = unsafe {
+            sys::lzc_send_space_resume_redacted(snapname.as_ref().as_ptr(), from.as_ref().as_ptr(), flags.into(), resume_obj, resume_off, resume_bytes, redactbook, fd, &mut space)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(space)
+        }
+    }
+
+    /// Estimate the size of the stream to be sent if [`send`] were called with the same arguments
+    ///
+    /// Internally, this is a wrapper around [`send_space_resume_redacted()`].
+    ///
     /// Corresponds to `lzc_send_space()`
-    pub fn send_space<S: CStrArgument, F: CStrArgument>(&self, _snapname: S, _from: F, _flags: u64) -> io::Result<u64> {
-        unimplemented!()
-    }
+    #[doc(alias = "lzc_send_space")]
+    pub fn send_space<S: CStrArgument, F: CStrArgument>(&self, snapname: S, from: F, flags: SendFlags) -> io::Result<u64> {
+        let snapname = snapname.into_cstr();
+        let from = from.into_cstr();
+    
+        let mut space = 0;
+        let r = unsafe {
+            sys::lzc_send_space(snapname.as_ref().as_ptr(), from.as_ref().as_ptr(), flags.into(), &mut space)
+        };
 
-    #[cfg(features = "v2_00")]
-    pub fn send_space_resume_redacted<S: CStrArgument, F: CStrArgument, R: CStrArgument>(&self, snapname: S, from: F, flags: u64, resume_obj: u64, resume_off: u64, resume_bytes: u64, redactbook: R, fd: RawFd) -> io::Result<u64> {
-        unimplemented!()
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(space)
+        }
     }
-    */
 
     /// Corresponds to `lzc_receive()`
     #[doc(alias = "lzc_receive")]
