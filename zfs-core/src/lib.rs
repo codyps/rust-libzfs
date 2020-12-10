@@ -1,6 +1,6 @@
 #![warn(missing_debug_implementations, rust_2018_idioms)]
 
-use snafu::{Snafu, ResultExt};
+use snafu::{Snafu};
 use cstr_argument::CStrArgument;
 use foreign_types::ForeignType;
 use nvpair::{NvList, NvListRef, NvListIter};
@@ -725,44 +725,142 @@ impl Zfs {
         }
     }
 
-    /*
+    /// Execute a channel program
+    ///
+    /// root privlidges are required to execute a channel program
+    ///
+    /// Corresponds to `lzc_channel_program()`
     // 0.8.?
     #[doc(alias = "lzc_channel_program")]
     pub fn channel_program<P: CStrArgument, R: CStrArgument>(&self, pool: P, program: R, instruction_limit: u64, memlimit: u64, args: &NvListRef) -> io::Result<NvList> {
-        unimplemented!()
+        let mut out_nv = ptr::null_mut();
+
+        let pool = pool.into_cstr();
+        let program = program.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_channel_program(pool.as_ref().as_ptr(), program.as_ref().as_ptr(), instruction_limit, memlimit, args.as_ptr() as *mut _, &mut out_nv)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(unsafe { NvList::from_ptr(out_nv) })
+        }
     }
 
+    /// Execute a read-only channel program
+    ///
+    /// root privlidges are required to execute a channel program (even a read-only one)
+    ///
+    /// Corresponds to `lzc_channel_program_nosync()`
+    #[doc(alias = "lzc_channel_program_nosync")]
+    pub fn channel_program_nosync<P: CStrArgument, R: CStrArgument>(&self, pool: P, program: R, instruction_limit: u64, memlimit: u64, args: &NvListRef) -> io::Result<NvList> {
+        let mut out_nv = ptr::null_mut();
+
+        let pool = pool.into_cstr();
+        let program = program.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_channel_program_nosync(pool.as_ref().as_ptr(), program.as_ref().as_ptr(), instruction_limit, memlimit, args.as_ptr() as *mut _, &mut out_nv)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(unsafe { NvList::from_ptr(out_nv) })
+        }
+    }
+
+    /// Create a pool checkpoint
+    ///
+    /// Corresponds to `lzc_pool_checkpoint()`
+    ///
+    // FIXME: libzfs_core.c lists the specific error returns
     // 0.8.?
     #[doc(alias = "lzc_pool_checkpoint")]
     pub fn pool_checkpoint<P: CStrArgument>(&self, pool: P) -> io::Result<()> {
-        unimplemented!()
+        let pool = pool.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_pool_checkpoint(pool.as_ref().as_ptr())
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(())
+        }
     }
 
+    /// Discard the pool checkpoint
+    ///
+    /// Corresponds to `lzc_pool_checkpoint_discard()`
     #[doc(alias = "lzc_pool_checkpoint_discard")]
     pub fn pool_checkpoint_discard<P: CStrArgument>(&self, pool: P) -> io::Result<()> {
-        unimplemented!()
+        let pool = pool.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_pool_checkpoint_discard(pool.as_ref().as_ptr())
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(())
+        }
     }
 
-    #[doc(alias = "lzc_channel_program_nosync")]
-    pub fn channel_program_nosync<P: CStrArgument, R: CStrArgument>(&self, pool: P, program: R, instruction_limit: u64, memlimit: u64, args: &NvListRef) -> io::Result<NvList> {
-        unimplemented!()
-    }
-
+    /// Corresponds to `lzc_load_key()`
     #[doc(alias = "lzc_load_key")]
-    pub fn load_key<F: CStrArgument>(&self, fsname: F, keydata: &[u8]) -> io::Result<()> {
-        unimplemented!()
+    pub fn load_key<F: CStrArgument>(&self, fsname: F, noop: bool, keydata: &[u8]) -> io::Result<()> {
+        let fsname = fsname.into_cstr();
+        
+        let r = unsafe {
+            sys::lzc_load_key(fsname.as_ref().as_ptr(), if noop { sys::boolean_t::B_TRUE } else { sys::boolean_t::B_FALSE }, keydata.as_ptr() as *mut _, keydata.len().try_into().unwrap())
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(())
+        }
     }
 
+    /// Corresponds to `lzc_unload_key()`
     #[doc(alias = "lzc_unload_key")]
     pub fn unload_key<F: CStrArgument>(&self, fsname: F) -> io::Result<()> {
-        unimplemented!()
+        let fsname = fsname.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_unload_key(fsname.as_ref().as_ptr())
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(())
+        }
     }
 
+    /// Corresponds to `lzc_change_key()`
     #[doc(alias = "lzc_change_key")]
     pub fn change_key<F: CStrArgument>(&self, fsname: F, crypt_cmd: u64, props: &NvListRef, keydata: Option<&[u8]>) -> io::Result<()> {
-        unimplemented!()
+        let fsname = fsname.into_cstr();
+
+        let (k, l) = keydata.map_or((ptr::null_mut(), 0), |v| (v.as_ptr() as *mut _, v.len()));
+        let r = unsafe {
+            sys::lzc_change_key(fsname.as_ref().as_ptr(), crypt_cmd, props.as_ptr() as *mut _, k, l.try_into().unwrap())
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(())
+        }
     }
 
+    /*
     // 0.8.?
     #[doc(alias = "lzc_reopen")]
     pub fn reopen<P: CStrArgument>(&self, pool: P, scrub_restart: bool) -> io::Result<()> {

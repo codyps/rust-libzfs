@@ -6,6 +6,11 @@ use std::io;
 use std::os::unix::io::AsRawFd;
 use std::io::Seek;
 
+fn have_root_privs() -> bool {
+    // this might not be totally accurate
+    unsafe { libc::geteuid() == 0 }
+}
+
 struct TempFs {
     path: String,
 }
@@ -305,9 +310,11 @@ fn hold_not_snap() {
 /// hold: NotFound: snapshot named doesn't exist
 #[test]
 fn hold_not_exist() {
-    let tmpfs = TempFs::new("hold_non_exist").unwrap();
+    let tmpfs = TempFs::new("hold_not_exist").unwrap();
 
     let z = zfs::Zfs::new().unwrap();
+    
+    // FIXME: when run with root perms, this does not return an error.
     let e = z.hold([
         (tmpfs.path().to_owned() + "/1@snap", "snap doesn't exist"),
     ].iter(), None);
@@ -315,7 +322,7 @@ fn hold_not_exist() {
     let e = if let Err(e) = e {
         e
     } else {
-        panic!("expected an error");
+        panic!("expected an error, got {:?}", e);
     };
 
     let e = if let zfs_core::Error::Io { source: e } = e {
@@ -505,4 +512,53 @@ fn bootenv() {
 
     println!("{:?}", r);
     panic!();
+}
+
+// WARNING: root perms only
+#[test]
+fn channel_program_nosync_list() {
+    if !have_root_privs() {
+        eprintln!("skipping channel_program_nosync_list, need root privs");
+        return;
+    }
+
+    let tmpfs = TempFs::new("channel_program_nosync_list").unwrap();
+    let z = zfs::Zfs::new().unwrap();
+
+    let props = nvpair::NvList::new();
+    z.create(tmpfs.path().to_owned() + "/1", zfs::DataSetType::Zfs, &props).unwrap();
+    
+    let prgm = r#"
+    function collect(...)
+      local arr = {}
+      local i = 1
+      for v in ... do
+        arr[i] = v
+        i = i + 1
+      end
+      return arr
+    end
+
+    args = ...
+    return collect(zfs.list.children(args["x"]))
+    "#;
+
+    let mut args_nv = nvpair::NvList::new();
+    args_nv.insert("x", tmpfs.path()).unwrap();
+
+    let res = z.channel_program_nosync(tmp_zpool_name(), std::ffi::CString::new(prgm).unwrap().as_ref(), 0xfffff, 0xfffff, &args_nv).unwrap();
+
+    let mut expected_children = std::collections::HashSet::new();
+    expected_children.insert(tmpfs.path().to_owned() + "/1");
+
+    for ch in &res {
+        let (v, d) = ch.tuple();
+        if let nvpair::NvData::Bool = d {
+
+        } else {
+            panic!("unexpected data for {:?}: {:?}", v, d);
+        }
+
+        assert_eq!(expected_children.remove(v.to_str().unwrap()), true);
+    }
 }
