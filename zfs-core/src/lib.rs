@@ -259,11 +259,11 @@ impl Zfs {
         self.snapshot_raw(&arg, &props)
     }
 
-    /// Create snapshot(s). `snaps` is a list of booleans, the names of which correspond to
-    /// snapshot names.
+    /// Create snapshot(s). `snaps` is a list of `bool` (not `boolean_value`) entries, the names of
+    /// which correspond to snapshot names.
     ///
     /// The snapshots must be from the same pool, and must not reference the same dataset (iow:
-    /// cannot create 2 snapshots of the same filesystem).
+    /// cannot create 2 snapshots of the same filesystem with a single call).
     ///
     /// Corresponds to `lzc_snapshot()`.
     // TODO: this is a fairly raw interface, consider abstracting (or at least adding some
@@ -860,46 +860,132 @@ impl Zfs {
         }
     }
 
-    /*
-    // 0.8.?
+    /// Corresponds to `lzc_reopen()`
+    // 0.8.0
     #[doc(alias = "lzc_reopen")]
     pub fn reopen<P: CStrArgument>(&self, pool: P, scrub_restart: bool) -> io::Result<()> {
-        unimplemented!()
+        let pool = pool.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_reopen(pool.as_ref().as_ptr(), if scrub_restart { sys::boolean_t::B_TRUE } else { sys::boolean_t::B_FALSE })
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(())
+        }
     }
 
-    // 0.8.?
+    /// Corresponds to `lzc_initialize()`
+    // 0.8.0
     #[doc(alias = "lzc_initialize")]
-    pub fn initialize<P: CStrArgument>(&self, pool: P, initialize_func: InitializeFunc, vdevs: &NvListRef) -> Result<(), (io::Error, NvList)> {
-        unimplemented!()
+    pub fn initialize<P: CStrArgument>(&self, pool: P, initialize_func: PoolInitializeFunc, vdevs: &NvListRef) -> Result<(), (io::Error, NvList)> {
+        let pool = pool.into_cstr();
+
+        let mut err_nv = ptr::null_mut();
+        let r = unsafe {
+            sys::lzc_initialize(pool.as_ref().as_ptr(), initialize_func.as_raw(), vdevs.as_ptr() as *mut _, &mut err_nv)
+        };
+        
+        if r != 0 {
+            Err((io::Error::from_raw_os_error(r), unsafe { NvList::from_ptr(err_nv)})) 
+        } else {
+            Ok(())
+        }
     }
 
-    // 0.8.?
+    /// Corresponds to `lzc_trim()`
+    // 0.8.0
     #[doc(alias = "lzc_trim")]
     pub fn trim<P: CStrArgument>(&self, pool: P, pool_trim_func: PoolTrimFunc, rate: u64, secure: bool, vdevs: &NvListRef) -> Result<(), (io::Error, NvList)> {
-        unimplemented!()
+        let pool = pool.into_cstr();
+
+        let mut err_nv = ptr::null_mut();
+        let r = unsafe {
+            sys::lzc_trim(pool.as_ref().as_ptr(), pool_trim_func.as_raw(), rate, if secure { sys::boolean_t::B_TRUE } else { sys::boolean_t::B_FALSE }, vdevs.as_ptr() as *mut _, &mut err_nv)
+        };
+
+        if r != 0 {
+            Err((io::Error::from_raw_os_error(r), unsafe { NvList::from_ptr(err_nv)}))
+        } else {
+            Ok(())
+        }
     }
 
+    /// Corresponds to `lzc_redact()`
+    #[cfg(features = "v2_00")]
     #[doc(alias = "lzc_redact")]
     pub fn redact<S: CStrArgument, B: CStrArgument>(&self, snapname: S, bookname: B, snapnv: &NvListRef) -> io::Result<()> {
-        unimplemented!()
+        let snapname = snapname.into_cstr();
+        let bookname = bookname.into_cstr();
+
+        let r = unsafe {
+            sys::lzc_redact(snapname.as_ref().as_ptr(), bookname.as_ref().as_ptr(), snapnv.as_ptr() as *mut _)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(())
+        }
     }
 
+    /// Corresponds to `lzc_wait()`
+    #[cfg(features = "v2_00")]
     #[doc(alias = "lzc_wait")]
     pub fn wait<P: CStrArgument>(&self, pool: P, activity: WaitActivity) -> io::Result<bool> {
-        unimplemented!()
+        let pool = pool.into_cstr();
+
+        let mut waited = sys::boolean_t::B_FALSE;
+        let r = unsafe {
+            sys::lzc_wait(pool.as_ref().as_ptr(), activity.as_raw(), &mut waited)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(waited != sys::boolean_t::B_FALSE)
+        }
     }
 
+    /// Corresponds to `lzc_wait_tag()`
+    #[cfg(features = "v2_00")]
     #[doc(alias = "lzc_wait_tag")]
     pub fn wait_tag<P: CStrArgument>(&self, pool: P, activity: WaitActivity, tag: u64) -> io::Result<bool> {
-        unimplemented!()
+        let pool = pool.into_cstr();
+
+        let mut waited = sys::boolean_t::B_FALSE;
+        let r = unsafe {
+            sys::lzc_wait_tag(pool.as_ref().as_ptr(), activity.as_raw(), tag, &mut waited)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(waited != sys::boolean_t::B_FALSE)
+        }
     }
 
+    /// Corresponds to `lzc_wait_fs()`
+    #[cfg(features = "v2_00")]
     #[doc(alias = "lzc_wait_fs")]
     pub fn wait_fs<F: CStrArgument>(&self, fs: F, activity: WaitActivity) -> io::Result<bool> {
-        unimplemented!()
-    }
-    */
+        let fs = fs.into_cstr();
 
+        let mut waited = sys::boolean_t::B_FALSE;
+        let r = unsafe {
+            sys::lzc_wait_fs(fs.as_ref().as_ptr(), activity.as_raw(), tag, &mut waited)
+        };
+
+        if r != 0 {
+            Err(io::Error::from_raw_os_error(r))
+        } else {
+            Ok(waited != sys::boolean_t::B_FALSE)
+        }
+    }
+
+    /// Corresponds to `lzc_set_bootenv()`
     #[cfg(features = "v2_00")]
     #[doc(alias = "lzc_set_bootenv")]
     pub fn set_bootenv<P: CStrArgument, E: CStrArgument>(&self, pool: P, env: &NvListRef) -> io::Result<()> {
@@ -912,6 +998,7 @@ impl Zfs {
         }
     }
 
+    /// Corresponds `lzc_get_bootenv()`
     #[cfg(features = "v2_00")]
     #[doc(alias = "lzc_get_bootenv")]
     pub fn get_bootenv<P: CStrArgument>(&self, pool: P) -> io::Result<NvList> {
@@ -933,10 +1020,23 @@ impl Drop for Zfs {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum InitializeFunc {
+pub enum PoolInitializeFunc {
     Start,
     Cancel,
     Suspend
+}
+
+impl PoolInitializeFunc {
+    pub fn as_raw(&self) -> sys::pool_initialize_func_t {
+        use PoolInitializeFunc::*;
+        use sys::pool_initialize_func as ifc;
+
+        match self {
+            Start => ifc::POOL_INITIALIZE_START,
+            Cancel => ifc::POOL_INITIALIZE_CANCEL,
+            Suspend => ifc::POOL_INITIALIZE_SUSPEND,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -944,6 +1044,18 @@ pub enum PoolTrimFunc {
     Start,
     Cancel,
     Suspend
+}
+
+impl PoolTrimFunc {
+    pub fn as_raw(&self) -> sys::pool_trim_func_t {
+        use PoolTrimFunc::*;
+        use sys::pool_trim_func as ptf;
+        match self {
+            Start => ptf::POOL_TRIM_START,
+            Cancel => ptf::POOL_TRIM_CANCEL,
+            Suspend => ptf::POOL_TRIM_SUSPEND,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -964,6 +1076,9 @@ pub struct SendFlags {
     pub large_block: bool,
     pub compress: bool,
     pub raw: bool,
+
+    #[cfg(features = "v2_00")]
+    pub saved: bool,
 }
 
 impl From<SendFlags> for u32 {
@@ -980,6 +1095,10 @@ impl From<SendFlags> for u32 {
         }
         if sf.raw {
             f |= sys::lzc_send_flags::LZC_SEND_FLAG_RAW;
+        }
+        #[cfg(features = "v2_00")]
+        if sf.saved {
+            f |= sys::lzc_send_flags::LZC_SEND_FLAG_SAVED;
         }
 
         f
