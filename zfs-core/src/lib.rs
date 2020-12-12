@@ -68,16 +68,8 @@ pub struct ErrorList {
 }
 
 impl ErrorList {
-    pub fn into_raw(self) -> NvList {
-        self.nv
-    }
-
-    pub fn as_raw(&self) -> &NvListRef {
-        &self.nv
-    }
-
-    pub fn as_raw_mut(&mut self) -> &mut NvListRef {
-        &mut self.nv
+    pub fn iter(&self) -> ErrorListIter<'_> {
+        self.into_iter()
     }
 }
 
@@ -87,6 +79,18 @@ impl From<NvList> for ErrorList {
     fn from(nv: NvList) -> Self {
         // TODO: consider examining shape of the error list here
         Self { nv }
+    }
+}
+
+impl AsRef<NvList> for ErrorList {
+    fn as_ref(&self) -> &NvList {
+        &self.nv
+    }
+}
+
+impl AsMut<NvList> for ErrorList {
+    fn as_mut(&mut self) -> &mut NvList {
+        &mut self.nv
     }
 }
 
@@ -417,6 +421,13 @@ impl Zfs {
         }
     }
 
+    /// Release holds from various snapshots
+    ///
+    /// The holds nvlist is `[(snap_name, [hold_names])]`, allowing multiple holds for multiple
+    /// snapshots to be released with one call.
+    ///
+    /// Related: [`release`]
+    ///
     /// Corresponds to `lzc_release`.
     #[doc(alias = "lzc_release")]
     pub fn release_raw(&self, holds: &NvListRef) -> Result<(), Result<io::Error, NvList>> {
@@ -464,16 +475,19 @@ impl Zfs {
 
     /// Get the holds for a given snapshot
     ///
+    /// The returned nvlist is `[(hold_name: String, unix_timestamp_seconds: u64)]`, where the unix
+    /// timestamp is when the hold was created.
+    ///
     /// Corresponds to `lzc_get_holds()`
     #[doc(alias = "lzc_get_holds")]
-    pub fn get_holds<S: CStrArgument>(&self, snapname: S) -> io::Result<NvList> {
+    pub fn get_holds<S: CStrArgument>(&self, snapname: S) -> io::Result<HoldList> {
         let snapname = snapname.into_cstr();
         let mut holds = ptr::null_mut();
         let v = unsafe { sys::lzc_get_holds(snapname.as_ref().as_ptr(), &mut holds) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            Ok(unsafe { NvList::from_ptr(holds)})
+            Ok(HoldList::new(unsafe { NvList::from_ptr(holds)}))
         }
     }
     
@@ -1183,6 +1197,65 @@ impl From<Defer> for bool {
         match d {
             Defer::No => false,
             Defer::Yes => true,
+        }
+    }
+}
+
+/// A list of holds for a given snapshot
+#[derive(Debug)]
+pub struct HoldList {
+    nv: NvList,
+}
+
+impl HoldList {
+    fn new(nv: NvList) -> Self {
+        Self { nv }
+    }
+}
+
+impl From<HoldList> for NvList {
+    fn from(hl: HoldList) -> Self {
+        hl.nv 
+    }
+}
+
+impl AsRef<NvListRef> for HoldList {
+    fn as_ref(&self) -> &NvListRef {
+        &self.nv 
+    }
+}
+
+/// Iterator of holds in the [`HoldList`]
+#[derive(Debug)]
+pub struct HoldListIter<'a> {
+    iter: NvListIter<'a>, 
+}
+
+impl<'a> IntoIterator for &'a HoldList {
+    type Item = (&'a ffi::CStr, std::time::SystemTime);
+    type IntoIter = HoldListIter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        HoldListIter {
+            iter: (&self.nv).into_iter()
+        }
+    }
+}
+
+impl<'a> Iterator for HoldListIter<'a> {
+    type Item = (&'a ffi::CStr, std::time::SystemTime);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.iter.next() {
+            Some(nvp) => {
+                let t = match nvp.data() {
+                    nvpair::NvData::Uint64(time_sec) => {
+                       std::time::UNIX_EPOCH + std::time::Duration::from_secs(time_sec) 
+                    },
+                    v => panic!("unexpected datatype in hold list {:?}", v)
+                };
+                Some((nvp.name(), t))
+            },
+            None => None,
         }
     }
 }
