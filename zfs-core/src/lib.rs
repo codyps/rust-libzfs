@@ -276,7 +276,7 @@ impl Zfs {
 
         let props = NvList::new();
         match self.snapshot_raw(&arg, &props) {
-            Ok(a) => Ok(a),
+            Ok(()) => Ok(()),
             Err(Ok(v)) => Err(Error::Io { source: v }),
             Err(Err(v)) => Err(Error::List { source: v.into() }),
         }
@@ -472,7 +472,7 @@ impl Zfs {
         }
 
         match self.hold_raw(&holds_nv, cleanup_fd) {
-            Ok(a) => Ok(a),
+            Ok(()) => Ok(()),
             Err(Ok(v)) => Err(Error::Io { source: v }),
             Err(Err(v)) => Err(Error::List { source: v.into() }),
         }
@@ -525,7 +525,7 @@ impl Zfs {
         }
 
         match self.release_raw(&r_nv) {
-            Ok(a) => Ok(a),
+            Ok(()) => Ok(()),
             Err(Ok(v)) => Err(Error::Io { source: v }),
             Err(Err(v)) => Err(Error::List { source: v.into() }),
         }
@@ -905,7 +905,7 @@ impl Zfs {
         }
 
         match self.bookmark_raw(&bookmarks_nv) {
-            Ok(a) => Ok(a),
+            Ok(()) => Ok(()),
             Err((_, err_nv)) => Err(ErrorList::from(err_nv)),
         }
     }

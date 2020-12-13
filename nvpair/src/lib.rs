@@ -209,6 +209,12 @@ impl NvList {
     }
 }
 
+impl Default for NvList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Clone for NvList {
     fn clone(&self) -> Self {
         self.try_clone().unwrap()
