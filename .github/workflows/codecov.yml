@@ -1,0 +1,41 @@
+on:
+  push:
+    branches-ignore:
+      - '**.tmp'
+
+name: codecov
+
+jobs:
+  codecov:
+    runs-on: ubuntu-20.04
+    env:
+      ZFS_TEMPFS: tpool
+    steps:
+      - uses: actions/checkout@v1
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install dependencies
+        run: sudo apt install libzfslinux-dev zfsutils-linux
+
+      - name: Setup test pool
+        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
+
+      - name: Run tests & generate coverage info
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --no-fail-fast
+        env:
+          CARGO_INCREMENTAL: '0'
+          RUSTFLAGS: '-Zinstrument-coverage'
+          LLVM_PROFILE_FILE: 'rust-libzfs-%p-%m.profraw'
+
+      - run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
+      - run: ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+      - run: bash <(curl -s https://codecov.io/bash) -f lcov.info
