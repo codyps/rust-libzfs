@@ -340,6 +340,7 @@ fn hold_not_exist() {
     // FIXME: when run with root perms, this does not return an error.
     let e = z.hold([
         (tmpfs.path().to_owned() + "/1@snap", "snap doesn't exist"),
+        (tmpfs.path().to_owned() + "/2@snap", "snap doesn't exist"),
     ].iter(), None);
 
     let e = if let Err(e) = e {
@@ -358,17 +359,18 @@ fn hold_not_exist() {
 
     // XXX: macos vs linux zfs difference
     // macos for some reason returns `Ok(())`, which is somewhat concerning
+    // linux (zfs 2.0.0) doesn't appear to return our error list, which is also concerning
     match e {
         // zfs 2.0.0 on linux:
         #[cfg(target_os = "linux")]
         zfs_core::Error::Io { source: e } => {
-            assert_eq!(e.kind(), io::ErrorKind::InvalidInput);
+            assert_eq!(e.kind(), io::ErrorKind::NotFound);
         }
         // _expected_ result
         /*
         zfs_core::Error::List { source: el } => {
             let mut hm = std::collections::HashMap::new();
-            hm.insert(tmpfs.path().to_owned() + "/1@snap", io::ErrorKind::InvalidInput);
+            hm.insert(tmpfs.path().to_owned() + "/1@snap", io::ErrorKind::NotFound);
 
             for (name, error) in el.iter() {
                 match hm.remove(name.to_str().unwrap()) {

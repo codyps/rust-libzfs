@@ -252,7 +252,7 @@ impl Zfs {
     /// Corresponds to `lzc_snapshot()`.
     #[doc(alias = "lzc_snapshot")]
     #[doc(alias = "snapshot_raw")]
-    pub fn snapshot<I: IntoIterator<Item=S>, S: CStrArgument>(&self, snaps: I) -> Result<(), (io::Error, Option<NvList>)> {
+    pub fn snapshot<I: IntoIterator<Item=S>, S: CStrArgument>(&self, snaps: I) -> Result<(), Error> {
         let mut arg = NvList::new();
 
         for i in snaps {
@@ -260,7 +260,11 @@ impl Zfs {
         }
 
         let props = NvList::new();
-        self.snapshot_raw(&arg, &props)
+        match self.snapshot_raw(&arg, &props) {
+            Ok(a) => Ok(a),
+            Err(Ok(v)) => Err(Error::Io { source: v }),
+            Err(Err(v)) => Err(Error::List { source: v.into() }),
+        }
     }
 
     /// Create snapshot(s). `snaps` is a list of `bool` (not `boolean_value`) entries, the names of
@@ -273,19 +277,18 @@ impl Zfs {
     // TODO: this is a fairly raw interface, consider abstracting (or at least adding some
     // restrictions on the NvLists).
     #[doc(alias = "lzc_snapshot")]
-    pub fn snapshot_raw(&self, snaps: &NvList, props: &NvList) -> Result<(), (io::Error, Option<NvList>)> {
+    pub fn snapshot_raw(&self, snaps: &NvList, props: &NvList) -> Result<(), Result<io::Error, NvList>> {
         let mut nv = ptr::null_mut();
         let v = unsafe {
             sys::lzc_snapshot(snaps.as_ptr() as *mut _, props.as_ptr() as *mut _, &mut nv)
         };
 
         if v != 0 {
-            let e = if nv.is_null() {
-                None
+            if nv.is_null() {
+                Err(Ok(io::Error::from_raw_os_error(v)))
             } else {
-                Some(unsafe { NvList::from_ptr(nv) })
-            };
-            Err((io::Error::from_raw_os_error(v), e))
+                Err(Err(unsafe { NvList::from_ptr(nv) }))
+            }
         } else {
             Ok(())
         }
