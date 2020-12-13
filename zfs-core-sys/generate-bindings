@@ -3,10 +3,17 @@ set -euf -o pipefail
 d=$(dirname $0)
 e=false
 
+optstr="hS:pR:"
+usage() {
+	echo "Usage: $0 [-S source-code-dir] [-p] [-R install-root-dir]"
+}
+
 ARGS=()
 # either use system definitions (found via pkg-config) or ones from the zfs source repo
-while getopts "hS:pR:" opt; do
+while getopts "$optstr" opt; do
 	case "$opt" in
+	h)
+		usage; exit 0;;
 	S) # use the source code in location
 		ARGS=(-I "$OPTARG/include" -I "$OPTARG/lib/libspl/include" -I "$OPTARG/lib/libspl/include/os/linux")
 		;;
