@@ -3,8 +3,8 @@ extern crate zfs_core as zfs;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::io;
-use std::os::unix::io::AsRawFd;
 use std::io::Seek;
+use std::os::unix::io::AsRawFd;
 
 fn have_root_privs() -> bool {
     // this might not be totally accurate
@@ -25,7 +25,9 @@ const NUM_RETRIES: u32 = 1 << 31;
 const NUM_RAND_CHARS: usize = 12;
 
 fn tmp_zpool_name() -> String {
-    std::env::var("ZFS_TEMPFS").expect("ZFS_TEMPFS should be set to a zfs filesystem that can be used for temporary datasets")
+    std::env::var("ZFS_TEMPFS").expect(
+        "ZFS_TEMPFS should be set to a zfs filesystem that can be used for temporary datasets",
+    )
 }
 
 impl TempFs {
@@ -60,10 +62,7 @@ impl TempFs {
     }
 
     pub fn new(prefix: &str) -> io::Result<TempFs> {
-        Self::with_base(
-            &tmp_zpool_name(),
-            prefix
-        )
+        Self::with_base(&tmp_zpool_name(), prefix)
     }
 
     pub fn path(&self) -> &str {
@@ -193,7 +192,8 @@ fn snapshot() {
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_snap), true);
 
-    z.destroy_snaps([b_snap.as_str()].iter().cloned(), zfs::Defer::No).unwrap();
+    z.destroy_snaps([b_snap.as_str()].iter().cloned(), zfs::Defer::No)
+        .unwrap();
     z.destroy(&b).unwrap();
 }
 
@@ -221,13 +221,18 @@ fn snapshot_multi() {
     b_snap1.push_str("@a");
     let mut b_snap2 = b_alt.clone();
     b_snap2.push_str("@b");
-    z.snapshot([b_snap1.as_str(), b_snap2.as_str()].iter().cloned()).unwrap();
+    z.snapshot([b_snap1.as_str(), b_snap2.as_str()].iter().cloned())
+        .unwrap();
 
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_snap1), true);
     assert_eq!(z.exists(&b_snap2), true);
 
-    z.destroy_snaps([b_snap1.as_str(), b_snap2.as_str()].iter().cloned(), zfs::Defer::No).unwrap();
+    z.destroy_snaps(
+        [b_snap1.as_str(), b_snap2.as_str()].iter().cloned(),
+        zfs::Defer::No,
+    )
+    .unwrap();
     z.destroy(&b).unwrap();
 }
 
@@ -255,7 +260,8 @@ fn hold_raw() {
     b_snap1.push_str("@a");
     let mut b_snap2 = b_alt.clone();
     b_snap2.push_str("@b");
-    z.snapshot([b_snap1.as_str(), b_snap2.as_str()].iter().cloned()).unwrap();
+    z.snapshot([b_snap1.as_str(), b_snap2.as_str()].iter().cloned())
+        .unwrap();
 
     assert_eq!(z.exists(&b), true);
     assert_eq!(z.exists(&b_snap1), true);
@@ -265,7 +271,11 @@ fn hold_raw() {
     hold_snaps.insert(&b_snap1, "hold-hello").unwrap();
     z.hold_raw(&hold_snaps, None).unwrap();
 
-    z.destroy_snaps([b_snap1.as_str(), b_snap2.as_str()].iter().cloned(), zfs::Defer::Yes).unwrap();
+    z.destroy_snaps(
+        [b_snap1.as_str(), b_snap2.as_str()].iter().cloned(),
+        zfs::Defer::Yes,
+    )
+    .unwrap();
 
     assert_eq!(z.exists(&b_snap1), true);
     assert_eq!(z.exists(&b_snap2), false);
@@ -273,7 +283,9 @@ fn hold_raw() {
     let mut release_snaps = nvpair::NvList::new();
     let mut holds_for_snap = nvpair::NvList::new();
     holds_for_snap.insert("hold-hello", &()).unwrap();
-    release_snaps.insert(&b_snap1, holds_for_snap.as_ref()).unwrap();
+    release_snaps
+        .insert(&b_snap1, holds_for_snap.as_ref())
+        .unwrap();
     z.release_raw(&release_snaps).unwrap();
 
     assert_eq!(z.exists(&b_snap1), false);
@@ -288,9 +300,10 @@ fn hold_not_snap() {
     let tmpfs = TempFs::new("hold_not_snap").unwrap();
 
     let z = zfs::Zfs::new().unwrap();
-    let e = z.hold([
-        (tmpfs.path().to_owned() + "/2", "doesn't look like snapshot"),
-    ].iter(), None);
+    let e = z.hold(
+        [(tmpfs.path().to_owned() + "/2", "doesn't look like snapshot")].iter(),
+        None,
+    );
 
     let e = if let Err(e) = e {
         e
@@ -319,7 +332,7 @@ fn hold_not_snap() {
                     Some(v) => {
                         assert_eq!(error.kind(), v);
                     }
-                    None => panic!()
+                    None => panic!(),
                 }
             }
         }
@@ -336,12 +349,16 @@ fn hold_not_exist() {
     let tmpfs = TempFs::new("hold_not_exist").unwrap();
 
     let z = zfs::Zfs::new().unwrap();
-    
+
     // FIXME: when run with root perms, this does not return an error.
-    let e = z.hold([
-        (tmpfs.path().to_owned() + "/1@snap", "snap doesn't exist"),
-        (tmpfs.path().to_owned() + "/2@snap", "snap doesn't exist"),
-    ].iter(), None);
+    let e = z.hold(
+        [
+            (tmpfs.path().to_owned() + "/1@snap", "snap doesn't exist"),
+            (tmpfs.path().to_owned() + "/2@snap", "snap doesn't exist"),
+        ]
+        .iter(),
+        None,
+    );
 
     let e = if let Err(e) = e {
         e
@@ -382,7 +399,6 @@ fn hold_not_exist() {
             }
         }
         */
-
         _ => {
             panic!("unexpected error kind: {:?}", e);
         }
@@ -395,16 +411,29 @@ fn hold_ok() {
     let z = zfs::Zfs::new().unwrap();
 
     let props = nvpair::NvList::new();
-    z.create(tmpfs.path().to_owned() + "/1", zfs::DataSetType::Zfs, &props).unwrap();
-    z.snapshot([tmpfs.path().to_owned() + "/1@snap"].iter().cloned()).unwrap();
+    z.create(
+        tmpfs.path().to_owned() + "/1",
+        zfs::DataSetType::Zfs,
+        &props,
+    )
+    .unwrap();
+    z.snapshot([tmpfs.path().to_owned() + "/1@snap"].iter().cloned())
+        .unwrap();
 
-    z.hold([
-        (tmpfs.path().to_owned() + "/1@snap", "test-hold-ok")
-    ].iter(), None).unwrap();
+    z.hold(
+        [(tmpfs.path().to_owned() + "/1@snap", "test-hold-ok")].iter(),
+        None,
+    )
+    .unwrap();
 
-    z.release([
-        (tmpfs.path().to_owned() + "/1@snap", ["test-hold-ok"].iter().cloned())
-    ].iter()).unwrap();
+    z.release(
+        [(
+            tmpfs.path().to_owned() + "/1@snap",
+            ["test-hold-ok"].iter().cloned(),
+        )]
+        .iter(),
+    )
+    .unwrap();
 }
 
 #[test]
@@ -413,16 +442,23 @@ fn get_holds() {
     let z = zfs::Zfs::new().unwrap();
 
     let props = nvpair::NvList::new();
-    z.create(tmpfs.path().to_owned() + "/1", zfs::DataSetType::Zfs, &props).unwrap();
-    z.snapshot([tmpfs.path().to_owned() + "/1@snap"].iter().cloned()).unwrap();
+    z.create(
+        tmpfs.path().to_owned() + "/1",
+        zfs::DataSetType::Zfs,
+        &props,
+    )
+    .unwrap();
+    z.snapshot([tmpfs.path().to_owned() + "/1@snap"].iter().cloned())
+        .unwrap();
 
-    z.hold([
-        (tmpfs.path().to_owned() + "/1@snap", "test-hold-ok")
-    ].iter(), None).unwrap();
-
+    z.hold(
+        [(tmpfs.path().to_owned() + "/1@snap", "test-hold-ok")].iter(),
+        None,
+    )
+    .unwrap();
 
     let holds = z.get_holds(tmpfs.path().to_owned() + "/1@snap").unwrap();
-    
+
     let mut expected_holds = std::collections::HashSet::new();
     expected_holds.insert("test-hold-ok");
     for h in holds.as_ref() {
@@ -436,9 +472,14 @@ fn get_holds() {
         assert_eq!(true, expected_holds.remove(v.to_str().unwrap()));
     }
 
-    z.release([
-        (tmpfs.path().to_owned() + "/1@snap", ["test-hold-ok"].iter().cloned())
-    ].iter()).unwrap();
+    z.release(
+        [(
+            tmpfs.path().to_owned() + "/1@snap",
+            ["test-hold-ok"].iter().cloned(),
+        )]
+        .iter(),
+    )
+    .unwrap();
 }
 
 #[test]
@@ -466,9 +507,11 @@ fn send_recv() {
     snap2.push_str("@b");
 
     let mut stream = tempfile::tempfile().unwrap();
-    z.send::<_, &str>(&snap1, None, stream.as_raw_fd(), zfs::SendFlags::default()).unwrap();
+    z.send::<_, &str>(&snap1, None, stream.as_raw_fd(), zfs::SendFlags::default())
+        .unwrap();
     stream.seek(io::SeekFrom::Start(0)).unwrap();
-    z.receive::<_, &str>(&snap2, None, None, false, false, stream.as_raw_fd()).unwrap();
+    z.receive::<_, &str>(&snap2, None, None, false, false, stream.as_raw_fd())
+        .unwrap();
 
     assert_eq!(z.exists(&fs1), true);
     assert_eq!(z.exists(&fs2), true);
@@ -581,8 +624,13 @@ fn channel_program_nosync_list() {
     let z = zfs::Zfs::new().unwrap();
 
     let props = nvpair::NvList::new();
-    z.create(tmpfs.path().to_owned() + "/1", zfs::DataSetType::Zfs, &props).unwrap();
-    
+    z.create(
+        tmpfs.path().to_owned() + "/1",
+        zfs::DataSetType::Zfs,
+        &props,
+    )
+    .unwrap();
+
     let prgm = r#"
     function collect(...)
       local arr = {}
@@ -601,7 +649,15 @@ fn channel_program_nosync_list() {
     let mut args_nv = nvpair::NvList::new();
     args_nv.insert("x", tmpfs.path()).unwrap();
 
-    let res = z.channel_program_nosync(tmp_zpool_name(), std::ffi::CString::new(prgm).unwrap().as_ref(), 0xfffff, 0xfffff, &args_nv).unwrap();
+    let res = z
+        .channel_program_nosync(
+            tmp_zpool_name(),
+            std::ffi::CString::new(prgm).unwrap().as_ref(),
+            0xfffff,
+            0xfffff,
+            &args_nv,
+        )
+        .unwrap();
 
     let mut expected_children = std::collections::HashSet::new();
     expected_children.insert(tmpfs.path().to_owned() + "/1");
@@ -609,7 +665,6 @@ fn channel_program_nosync_list() {
     for ch in &res {
         let (v, d) = ch.tuple();
         if let nvpair::NvData::Bool = d {
-
         } else {
             panic!("unexpected data for {:?}: {:?}", v, d);
         }

@@ -108,12 +108,7 @@ impl NvEncode for NvListRef {
 impl NvEncode for () {
     fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
-        let v = unsafe {
-            sys::nvlist_add_boolean(
-                nv.as_mut_ptr(),
-                name.as_ref().as_ptr(),
-            )
-        };
+        let v = unsafe { sys::nvlist_add_boolean(nv.as_mut_ptr(), name.as_ref().as_ptr()) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -435,7 +430,11 @@ impl NvListRef {
     }
 
     // TODO: consider renaming to `try_insert()` and having a `insert()` with an inner unwrap.
-    pub fn insert<S: CStrArgument, D: NvEncode + ?Sized>(&mut self, name: S, data: &D) -> io::Result<()> {
+    pub fn insert<S: CStrArgument, D: NvEncode + ?Sized>(
+        &mut self,
+        name: S,
+        data: &D,
+    ) -> io::Result<()> {
         data.insert_into(name, self)
     }
 }

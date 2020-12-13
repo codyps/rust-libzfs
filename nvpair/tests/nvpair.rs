@@ -95,5 +95,6 @@ fn insert() {
 fn insert_cstr() {
     let mut a = nvpair::NvList::new();
 
-    a.insert("hello", CStr::from_bytes_with_nul(b"bye\0").unwrap()).unwrap();
+    a.insert("hello", CStr::from_bytes_with_nul(b"bye\0").unwrap())
+        .unwrap();
 }
