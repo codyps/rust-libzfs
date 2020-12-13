@@ -9,12 +9,18 @@ description = "Rust interface to libzfs_core (lzc)"
 license = "Apache-2.0 OR MIT"
 edition = "2018"
 
+[features]
+v2_00 = []
+
 [dependencies]
 nvpair = { path = "../nvpair", version = "0.4.0" }
 zfs-core-sys = { path = "../zfs-core-sys", version = "0.4.0" }
 cstr-argument = "0.1"
 foreign-types = "0.5.0"
 rand = "0.7.3"
+snafu = "0.6"
 
-[badges]
-travis-ci = { repository = "jmesmon/rust-libzfs" }
+[dev-dependencies]
+os_pipe = "0.9"
+tempfile = "3"
+libc = "0.2"

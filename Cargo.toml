@@ -1,3 +1,8 @@
 
 [workspace]
-members = ['zfs-core-sys', 'zfs-core', 'nvpair-sys', 'nvpair']
+members = ['zfs-core-sys', 'zfs-core', 'nvpair-sys', 'nvpair', 'zfs-drr']
+exclude = ['systest']
+
+
+#[patch.crates-io]
+#cstr-argument = { path = '../cstr-argument' }

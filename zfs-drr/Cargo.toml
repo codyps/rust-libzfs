@@ -1,0 +1,9 @@
+[package]
+name = "zfs-drr"
+version = "0.1.0"
+authors = ["Cody P Schafer <dev@codyps.com>"]
+edition = "2018"
+description = "ZFS DMU Replay Record handling (data for send/recv)"
+license = "Apache-2.0 OR MIT"
+
+[dependencies]

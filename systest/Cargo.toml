@@ -1,0 +1,13 @@
+[package]
+name = "systest"
+version = "0.1.0"
+authors = ["Cody P Schafer <dev@codyps.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+zfs-core-sys = { path = "../zfs-core-sys" }
+libc = "0.2"
+
+[build-dependencies]
+ctest = "0.2"
