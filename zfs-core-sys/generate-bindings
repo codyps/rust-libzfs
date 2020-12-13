@@ -1,13 +1,29 @@
 #!/usr/bin/env bash
 set -euf -o pipefail
 d=$(dirname $0)
+e=false
 
-# either use system definitions (found via pkg-config) or ones from the zfs source repo
 ARGS=()
-if [ "$#" -eq 1 ]; then
-	ARGS+=(-I "$1/include" -I "$1/lib/libspl/include")
-else
-	ARGS+=($(pkg-config --cflags libzfs_core))
+# either use system definitions (found via pkg-config) or ones from the zfs source repo
+while getopts "hS:pR:" opt; do
+	case "$opt" in
+	S) # use the source code in location
+		ARGS=(-I "$OPTARG/include" -I "$OPTARG/lib/libspl/include" -I "$OPTARG/lib/libspl/include/os/linux")
+		;;
+	p) # system pkg-config
+		ARGS=($(pkg-config --cflags libzfs_core))
+		;;
+	R) # use this install location
+		ARGS=(-I "$OPTARG/usr/include" -I "$OPTARG/usr/local/include" -I "$OPTARG/usr/local/include/libzfs" -I "$OPTARG/usr/local/include/libspl")
+		;;
+	\?) e=true ;;
+	*) >&2 echo "programming bug: $opt unhandled"; exit 1;;
+	esac
+done
+
+if $e; then
+	>&2 echo "exiting due to previous errors"
+	exit 1
 fi
 
 set -x
@@ -25,12 +41,21 @@ bindgen "$d/wrapper.h" \
 	--whitelist-type 'vdev_.*' \
 	--whitelist-type 'zfs_.*' \
 	--whitelist-type 'zpool_.*' \
+	--whitelist-type 'drr_.*' \
+	--whitelist-type 'dmu_.*' \
+	--whitelist-type 'diff_type.*' \
+	--whitelist-type 'zfs_.*' \
+	--whitelist-type 'zinject.*' \
+	--whitelist-type 'zio_.*' \
+	--whitelist-type 'ddt_.*' \
 	--whitelist-var 'L2ARC_.*' \
 	--whitelist-var 'SPA_.*' \
 	--whitelist-var 'VDEV_.*' \
 	--whitelist-var 'ZFS_.*' \
 	--whitelist-var 'ZPL_.*' \
 	--whitelist-var 'ZPOOL_.*' \
+	--whitelist-var 'DMU_.*' \
+	--whitelist-var 'DRR_.*' \
 	--whitelist-var 'DEFAULT_PBKDF2_ITERATIONS' \
 	--whitelist-var 'MIN_PBKDF2_ITERATIONS' \
 	--default-enum-style moduleconsts \
