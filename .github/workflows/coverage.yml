@@ -12,22 +12,20 @@ jobs:
       ZFS_TEMPFS: tpool
     steps:
       - uses: actions/checkout@v1
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
-      - name: Install dependencies
-        run: sudo apt install libzfslinux-dev zfsutils-linux
-
-      - name: Setup test pool
-        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
       - name: Setup Rust Toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
+
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install dependencies
+        run: sudo apt install libzfslinux-dev zfsutils-linux
+
+      - name: Setup test pool
+        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
+
       - name: Run tests & generate coverage info
         uses: actions-rs/cargo@v1
         with:

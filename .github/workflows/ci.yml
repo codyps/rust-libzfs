@@ -13,25 +13,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
-
-      - name: Install dependencies
-        run: sudo apt install libzfslinux-dev zfsutils-linux
-
-      - name: Setup test pool
-        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: beta
           override: true
           components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install dependencies
+        run: sudo apt install libzfslinux-dev zfsutils-linux
+
+      - name: Setup test pool
+        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
 
       - uses: actions-rs/cargo@v1
         with:
