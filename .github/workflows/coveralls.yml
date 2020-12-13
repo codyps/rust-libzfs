@@ -3,10 +3,10 @@ on:
     branches-ignore:
       - '**.tmp'
 
-name: Code Coverage
+name: coveralls
 
 jobs:
-  lint:
+  coveralls:
     runs-on: ubuntu-20.04
     env:
       ZFS_TEMPFS: tpool
