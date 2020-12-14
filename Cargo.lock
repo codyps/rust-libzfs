@@ -74,7 +74,7 @@ checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 
 [[package]]
 name = "nvpair"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "cstr-argument",
  "foreign-types",
@@ -263,7 +263,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "zfs-core"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "cstr-argument",
  "foreign-types",
@@ -278,7 +278,7 @@ dependencies = [
 
 [[package]]
 name = "zfs-core-sys"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "libc",
  "nvpair-sys",
