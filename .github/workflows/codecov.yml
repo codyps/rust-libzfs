@@ -3,10 +3,10 @@ on:
     branches-ignore:
       - '**.tmp'
 
-name: Code Coverage
+name: codecov
 
 jobs:
-  lint:
+  codecov:
     runs-on: ubuntu-20.04
     env:
       ZFS_TEMPFS: tpool
@@ -17,6 +17,7 @@ jobs:
         with:
           toolchain: nightly
           override: true
+          components: llvm-tools-preview
 
       - uses: Swatinem/rust-cache@v1
 
@@ -33,18 +34,9 @@ jobs:
           args: --all-features --no-fail-fast
         env:
           CARGO_INCREMENTAL: '0'
-          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+          RUSTFLAGS: '-Zinstrument-coverage'
+          LLVM_PROFILE_FILE: 'rust-libzfs-%p-%m.profraw'
+
       - run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
-      - run: zip -0 ccov.zip `find . \( -name "*.gc*" \) -print`
-      - run: ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v1
-        with:
-          name: code-coverage-report
-          path: lcov.info
-      - name: Upload to coveralls
-        uses: coverallsapp/github-action@v1.1.2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: lcov.info
+      - run: ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+      - run: bash <(curl -s https://codecov.io/bash) -f lcov.info

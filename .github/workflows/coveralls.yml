@@ -1,0 +1,50 @@
+on:
+  push:
+    branches-ignore:
+      - '**.tmp'
+
+name: coveralls
+
+jobs:
+  coveralls:
+    runs-on: ubuntu-20.04
+    env:
+      ZFS_TEMPFS: tpool
+    steps:
+      - uses: actions/checkout@v1
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install dependencies
+        run: sudo apt install libzfslinux-dev zfsutils-linux
+
+      - name: Setup test pool
+        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
+
+      - name: Run tests & generate coverage info
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --no-fail-fast
+        env:
+          CARGO_INCREMENTAL: '0'
+          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+      - run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
+      - run: zip -0 ccov.zip `find . \( -name "*.gc*" \) -print`
+      - run: ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: lcov.info
+      - name: Upload to coveralls
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: lcov.info
