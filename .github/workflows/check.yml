@@ -3,10 +3,10 @@ on:
     branches-ignore:
       - '**.tmp'
 
-name: ci
+name: check
 
 jobs:
-  ci:
+  check:
     env:
       ZFS_TEMPFS: tpool
     runs-on: ubuntu-20.04
@@ -23,19 +23,6 @@ jobs:
 
       - name: Install dependencies
         run: sudo apt install libzfslinux-dev zfsutils-linux
-
-      - name: Setup test pool
-        run: sudo ./zfs-core/test-prepare "${ZFS_TEMPFS}"
-
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all --verbose --all-features
-
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all --verbose --all-features
 
       - uses: actions-rs/cargo@v1
         with:
