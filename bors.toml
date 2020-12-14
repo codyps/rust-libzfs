@@ -1,7 +1,7 @@
 status = [
 	"test (stable)"
 	"test (beta)"
-	"test (1.47.0)"
+	"test (1.48.0)"
 	"check"
 ]
 cut_body_after = "---"
