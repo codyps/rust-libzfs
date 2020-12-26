@@ -7,3 +7,4 @@ description = "ZFS DMU Replay Record handling (data for send/recv)"
 license = "Apache-2.0 OR MIT"
 
 [dependencies]
+snafu = "0.6"
