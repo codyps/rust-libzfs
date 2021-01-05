@@ -17,7 +17,7 @@ nvpair = { path = "../nvpair", version = "0.5.0" }
 zfs-core-sys = { path = "../zfs-core-sys", version = "0.5.0" }
 cstr-argument = "0.1"
 foreign-types = "0.5.0"
-rand = "0.7.3"
+rand = "0.8.1"
 snafu = "0.6"
 
 [dev-dependencies]
