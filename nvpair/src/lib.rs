@@ -123,7 +123,7 @@ impl NvEncode for str {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum NvEncoding {
     Native,
     Xdr,
@@ -171,6 +171,20 @@ impl NvList {
     pub fn try_new_unique_names() -> io::Result<Self> {
         let mut n = ptr::null_mut();
         let v = unsafe { sys::nvlist_alloc(&mut n, sys::NV_UNIQUE_NAME, 0) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(unsafe { Self::from_ptr(n) })
+        }
+    }
+
+    /// Try to create a new `NvList` from the packed buffer
+    ///
+    /// Returns an error if memory allocation fails
+    pub fn try_unpack(buf: &[u8]) -> io::Result<Self> {
+        let mut n = ptr::null_mut();
+        let len_u64 = buf.len() as u64;
+        let v = unsafe { nvpair_sys::nvlist_unpack(buf.as_ptr() as *mut _, len_u64, &mut n, 0) };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -252,6 +266,30 @@ impl NvListRef {
             Err(io::Error::from_raw_os_error(v))
         } else {
             Ok(l)
+        }
+    }
+
+    pub fn pack(&self, code: NvEncoding) -> io::Result<Vec<u8>> {
+        let size = self.encoded_size(code).unwrap() as usize;
+        let mut vec = Vec::with_capacity(size);
+        let mut cap = vec.capacity() as u64;
+        let mut ptr = vec.as_mut_ptr() as *mut i8;
+
+        let v = unsafe {
+            let v = nvpair_sys::nvlist_pack(
+                self.as_ptr() as *mut _,
+                &mut ptr,
+                &mut cap,
+                code.as_raw(),
+                0,
+            );
+            vec.set_len(cap as usize);
+            v
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(vec)
         }
     }
 
