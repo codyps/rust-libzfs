@@ -23,9 +23,22 @@ pub enum NvData<'a> {
     Uint64(u64),
     Str(&'a ffi::CStr),
     NvListRef(&'a NvListRef),
-    // TODO: arrays
-    // hrtime
-    // double
+    ByteArray(&'a [u8]),
+    Int8Array(&'a [i8]),
+    Uint8Array(&'a [u8]),
+    Int16Array(&'a [i16]),
+    Uint16Array(&'a [u16]),
+    Int32Array(&'a [i32]),
+    Uint32Array(&'a [u32]),
+    Int64Array(&'a [i64]),
+    Uint64Array(&'a [u64]),
+    NvListRefArray(Vec<&'a NvListRef>),
+    /* TODO:
+    pub const DATA_TYPE_STRING_ARRAY: Type = 17;
+    pub const DATA_TYPE_HRTIME: Type = 18;
+    pub const DATA_TYPE_BOOLEAN_ARRAY: Type = 24;
+    pub const DATA_TYPE_DOUBLE: Type = 27;
+    */
 }
 
 pub trait NvEncode {
@@ -55,10 +68,246 @@ impl NvEncode for bool {
     }
 }
 
+impl NvEncode for i8 {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe { sys::nvlist_add_int8(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for u8 {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe { sys::nvlist_add_uint8(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for i16 {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe { sys::nvlist_add_int16(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for u16 {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe { sys::nvlist_add_uint16(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for i32 {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe { sys::nvlist_add_int32(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
 impl NvEncode for u32 {
     fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
         let name = name.into_cstr();
         let v = unsafe { sys::nvlist_add_uint32(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for i64 {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe { sys::nvlist_add_int64(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for u64 {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe { sys::nvlist_add_uint64(nv.as_mut_ptr(), name.as_ref().as_ptr(), *self) };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for [i8] {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_int8_array(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut i8,
+                self.len() as u32,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for [u8] {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_uint8_array(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut u8,
+                self.len() as u32,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for [i16] {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_int16_array(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut i16,
+                self.len() as u32,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for [u16] {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_uint16_array(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut u16,
+                self.len() as u32,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for [i32] {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_int32_array(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut i32,
+                self.len() as u32,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for [u32] {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_uint32_array(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut u32,
+                self.len() as u32,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for [i64] {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_int64_array(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut i64,
+                self.len() as u32,
+            )
+        };
+        if v != 0 {
+            Err(io::Error::from_raw_os_error(v))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl NvEncode for [u64] {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        let name = name.into_cstr();
+        let v = unsafe {
+            sys::nvlist_add_uint64_array(
+                nv.as_mut_ptr(),
+                name.as_ref().as_ptr(),
+                self.as_ptr() as *mut u64,
+                self.len() as u32,
+            )
+        };
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
@@ -560,7 +809,7 @@ impl NvPair {
     }
 
     // TODO: consider defering decode here until actually requested by the caller. Users of
-    // `data` might not care to decode most data types, meaning we're waisting time with the
+    // `data` might not care to decode most data types, meaning we're wasting time with the
     // various `nvpair_value_*()` calls some of the time.
     pub fn data(&self) -> NvData<'_> {
         let data_type = unsafe { sys::nvpair_type(self.as_ptr()) };
@@ -675,6 +924,156 @@ impl NvPair {
 
                 NvData::NvListRef(l)
             }
+            sys::data_type_t::DATA_TYPE_BYTE_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_byte_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::ByteArray(slice)
+            }
+            sys::data_type_t::DATA_TYPE_INT8_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_int8_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::Int8Array(slice)
+            }
+            sys::data_type_t::DATA_TYPE_UINT8_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_uint8_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::Uint8Array(slice)
+            }
+            sys::data_type_t::DATA_TYPE_INT16_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_int16_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::Int16Array(slice)
+            }
+            sys::data_type_t::DATA_TYPE_UINT16_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_uint16_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::Uint16Array(slice)
+            }
+            sys::data_type_t::DATA_TYPE_INT32_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_int32_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::Int32Array(slice)
+            }
+            sys::data_type_t::DATA_TYPE_UINT32_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_uint32_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::Uint32Array(slice)
+            }
+            sys::data_type_t::DATA_TYPE_INT64_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_int64_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::Int64Array(slice)
+            }
+            sys::data_type_t::DATA_TYPE_UINT64_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_uint64_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+
+                NvData::Uint64Array(slice)
+            }
+            sys::data_type_t::DATA_TYPE_NVLIST_ARRAY => {
+                let slice = unsafe {
+                    let mut array = MaybeUninit::uninit();
+                    let mut len = MaybeUninit::uninit();
+                    sys::nvpair_value_nvlist_array(
+                        self.as_ptr(),
+                        array.as_mut_ptr(),
+                        len.as_mut_ptr(),
+                    );
+                    std::slice::from_raw_parts(array.assume_init(), len.assume_init() as usize)
+                };
+                let mut vec = Vec::with_capacity(slice.len());
+                for p in slice {
+                    vec.push(unsafe { NvListRef::from_ptr(*p) });
+                }
+
+                NvData::NvListRefArray(vec)
+            }
+            /* TODO:
+            pub const DATA_TYPE_STRING_ARRAY: Type = 17;
+            pub const DATA_TYPE_HRTIME: Type = 18;
+            pub const DATA_TYPE_BOOLEAN_ARRAY: Type = 24;
+            pub const DATA_TYPE_DOUBLE: Type = 27;
+            */
             _ => NvData::Unknown,
         }
     }
