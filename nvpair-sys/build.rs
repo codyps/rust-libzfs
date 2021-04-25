@@ -4,7 +4,7 @@ fn main() {
     // `aok`, which is in `libzfs`.
     println!("cargo:rustc-link-lib=zfs");
     // nvpair uses functions from libspl on FreeBSD
-    if cfg!(target_os="freebsd") {
-      println!("cargo:rustc-link-lib=spl");
+    if cfg!(target_os = "freebsd") {
+        println!("cargo:rustc-link-lib=spl");
     };
 }
