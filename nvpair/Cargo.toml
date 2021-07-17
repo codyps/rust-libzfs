@@ -13,6 +13,7 @@ edition = "2018"
 cstr-argument = "0.1"
 nvpair-sys = { path = "../nvpair-sys", version = "0.4.0" }
 foreign-types = "0.5.0"
+serde = "1.0"
 
 [badges]
 travis-ci = { repository = "jmesmon/rust-libzfs" }

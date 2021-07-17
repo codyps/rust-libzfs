@@ -1,8 +1,19 @@
 #![warn(missing_debug_implementations, rust_2018_idioms)]
 
+mod de;
+mod error;
+mod ser;
+pub use de::from_bytes;
+pub use de::from_nvlist;
+pub use error::Error;
+pub use error::Result;
+pub use ser::to_bytes;
+pub use ser::to_nvlist;
+
 use cstr_argument::CStrArgument;
 use foreign_types::{foreign_type, ForeignType, ForeignTypeRef, Opaque};
 use nvpair_sys as sys;
+use std::ffi::CString;
 use std::mem::MaybeUninit;
 use std::os::raw::c_int;
 use std::{ffi, fmt, io, ptr};
@@ -45,6 +56,39 @@ pub trait NvEncode {
     fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()>;
     //fn read(NvPair &nv) -> io::Result<Self>;
 }
+
+/*
+impl NvEncode for NvData<'_> {
+    fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
+        match self {
+            NvData::Unknown => todo!(),
+            NvData::Bool => nv.add_boolean(name),
+            NvData::BoolV(v) => v.insert_into(name, nv),
+            NvData::Byte(v) => v.insert_into(name, nv),
+            NvData::Int8(v) => v.insert_into(name, nv),
+            NvData::Uint8(v) => v.insert_into(name, nv),
+            NvData::Int16(v) => v.insert_into(name, nv),
+            NvData::Uint16(v) => v.insert_into(name, nv),
+            NvData::Int32(v) => v.insert_into(name, nv),
+            NvData::Uint32(v) => v.insert_into(name, nv),
+            NvData::Int64(v) => v.insert_into(name, nv),
+            NvData::Uint64(v) => v.insert_into(name, nv),
+            NvData::Str(v) => v.insert_into(name, nv),
+            NvData::NvListRef(v) => v.insert_into(name, nv),
+            NvData::ByteArray(v) => v.insert_into(name, nv),
+            NvData::Int8Array(v) => v.insert_into(name, nv),
+            NvData::Uint8Array(v) => v.insert_into(name, nv),
+            NvData::Int16Array(v) => v.insert_into(name, nv),
+            NvData::Uint16Array(v) => v.insert_into(name, nv),
+            NvData::Int32Array(v) => v.insert_into(name, nv),
+            NvData::Uint32Array(v) => v.insert_into(name, nv),
+            NvData::Int64Array(v) => v.insert_into(name, nv),
+            NvData::Uint64Array(v) => v.insert_into(name, nv),
+            NvData::NvListRefArray(_v) => todo!(),
+        }
+    }
+}
+*/
 
 impl NvEncode for bool {
     fn insert_into<S: CStrArgument>(&self, name: S, nv: &mut NvListRef) -> io::Result<()> {
