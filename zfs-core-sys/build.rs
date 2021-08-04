@@ -1,6 +1,6 @@
 use std::{
     ffi::OsStr,
-    path::{Path, PathBuf},
+    path::PathBuf,
     str::FromStr,
 };
 
@@ -56,7 +56,7 @@ fn main() {
     let mut build_env = build_env::BuildEnv::from_env().expect("Could not determine build_env");
 
     let lzc_libdir = build_env.var("LIBZFS_CORE_LIBDIR");
-    let lzc_lookup = if let Some(_) = lzc_libdir.as_ref() {
+    let lzc_lookup = if lzc_libdir.as_ref().is_some() {
         // Implies users want `LIBZFS_CORE_LOOKUP_WITH=link`
         Lookup::Link
     } else {
@@ -105,16 +105,18 @@ fn main() {
         }
     }
 
+    // FIXME: we don't provide a way to specify the search path for nvpair. One can add search
+    // paths with RUSTFLAGS or some cargo.toml build target hacking. Consider if we should either
+    // rely on that mechanism entirely (even for libzfs_core), or add a LIB_DIR env var for
+    // nvpair/zutil/etc
+    //
     // there is currently no nvpair pkg-config, so unconditionally link
     if target_os == "macos" {
         // TODO: this is an openzfs on osx specific path. Provide a way to disable
         println!("cargo:rustc-link-search=native=/usr/local/zfs/lib");
     }
     println!("cargo:rustc-link-lib=nvpair");
-    match target_os.as_str() {
-        "freebsd" => {
-            println!("cargo:rustc-link-lib=dylib:-as-needed=zutil");
-        }
-        _ => {}
+    if target_os == "freebsd" {
+        println!("cargo:rustc-link-lib=dylib:-as-needed=zutil");
     }
 }
