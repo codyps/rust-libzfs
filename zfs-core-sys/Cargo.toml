@@ -11,7 +11,7 @@ edition = "2018"
 
 [build-dependencies]
 pkg-config = "0.3"
-#bindgen = "0.30"
+build-env = "0.3"
 
 [dependencies]
 libc = "0.2"
