@@ -31,5 +31,10 @@ bindgen "$d/wrapper.h" \
 	--blacklist-type '_IO_FILE' \
 	--blacklist-type 'FILE' \
 	--no-recursive-whitelist \
-	--raw-line 'pub type size_t = ::std::os::raw::c_ulong;' \
+	--raw-line \
+'
+// workaround for https://github.com/rust-lang/rust-bindgen/issues/1651
+#[allow(unknown_lints)]
+#[allow(deref_nullptr)]
+pub type size_t = ::std::os::raw::c_ulong;' \
 	-- `pkg-config libzfs_core --cflags` "${CFLAGS[@]}"
