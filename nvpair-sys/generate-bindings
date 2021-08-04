@@ -1,4 +1,17 @@
 #!/bin/sh
+
+os=$(uname -s)
+case "$os" in
+Darwin)
+	export PKG_CONFIG_PATH=/usr/local/zfs/lib/pkgconfig
+	sdkpath="$(xcrun --sdk macosx --show-sdk-path)"
+	CFLAGS=(-I "$sdkpath/usr/include/")
+	;;
+*)
+	CFLAGS=()
+	;;
+esac
+
 d=$(dirname $0)
 bindgen "$d/wrapper.h" \
 	-o "$d/src/bindings.rs" \
@@ -13,10 +26,15 @@ bindgen "$d/wrapper.h" \
 	--whitelist-type 'nvlist.*' \
 	--whitelist-type 'hrtime.*' \
 	--whitelist-type 'data_type_.*' \
-	--whitelist-type 'size_t' \
 	--constified-enum-module '.*' \
 	--blacklist-type 'va_list' \
 	--blacklist-type '_IO_FILE' \
 	--blacklist-type 'FILE' \
 	--no-recursive-whitelist \
-	-- `pkg-config libzfs_core --cflags`
+	--raw-line \
+'
+// workaround for https://github.com/rust-lang/rust-bindgen/issues/1651
+#[allow(unknown_lints)]
+#[allow(deref_nullptr)]
+pub type size_t = ::std::os::raw::c_ulong;' \
+	-- `pkg-config libzfs_core --cflags` "${CFLAGS[@]}"
