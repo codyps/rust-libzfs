@@ -1,0 +1,41 @@
+on:
+  push:
+    branches-ignore:
+      - '**.tmp'
+
+name: mac
+jobs:
+  mac:
+    runs-on: macos-10.15
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+          - 1.48.0
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v1
+
+      - name: Download openzfs-on-osx
+        run: curl -o zfs.pkg https://openzfsonosx.org/forum/download/file.php?id=309&sid=f486243ccdc8e8e13894f14ce0b28d93
+
+      - name: Install openzfs-on-osx
+        run: sudo installer -verbose -pkg zfs.pkg -target /
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-targets --all
+
+
