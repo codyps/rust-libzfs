@@ -1,4 +1,8 @@
-use std::{ffi::OsStr, path::{Path, PathBuf}, str::FromStr};
+use std::{
+    ffi::OsStr,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 fn var(s: &str) -> Result<String, std::env::VarError> {
     println!("cargo:rerun-if-env-changed={}", s);
@@ -72,7 +76,7 @@ fn main() {
             //
             // Right now, if the link method is _not_ supplied, we tweak PKG_CONFIG_PATH so things
             // will automatically work in the common case (with openzfs on osx 2.01 at least)
-            // 
+            //
             // This will almost certainly behave poorly in the case of cross compilation, where
             // users should probably specify a `LIBZFS_CORE_LOOKUP_WITH` explicitly.
             "macos" => {
@@ -111,6 +115,6 @@ fn main() {
         "freebsd" => {
             println!("cargo:rustc-link-lib=dylib:-as-needed=zutil");
         }
-        _ => {},
+        _ => {}
     }
 }
