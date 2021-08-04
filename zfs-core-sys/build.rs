@@ -1,8 +1,4 @@
-use std::{
-    ffi::OsStr,
-    path::PathBuf,
-    str::FromStr,
-};
+use std::{ffi::OsStr, path::PathBuf, str::FromStr};
 
 fn var(s: &str) -> Result<String, std::env::VarError> {
     println!("cargo:rerun-if-env-changed={}", s);
