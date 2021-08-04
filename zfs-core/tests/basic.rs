@@ -316,13 +316,11 @@ fn hold_not_snap() {
     // variant. This might be a bug in our code, or some change in how lzc handles errors for
     // single results
     match e {
-        // zfs 2.0.0 on linux:
-        #[cfg(target_os = "linux")]
+        // openzfs 2.0.0:
         zfs_core::Error::Io { source: e } => {
             assert_eq!(e.kind(), io::ErrorKind::InvalidInput);
         }
-        // zfs 1.9.4 on macos:
-        #[cfg(target_os = "macos")]
+        // openzfs 1.9.4:
         zfs_core::Error::List { source: el } => {
             let mut hm = std::collections::HashMap::new();
             hm.insert(tmpfs.path().to_owned() + "/2", io::ErrorKind::InvalidInput);
@@ -335,10 +333,6 @@ fn hold_not_snap() {
                     None => panic!(),
                 }
             }
-        }
-
-        _ => {
-            panic!("unexpected error kind: {:?}", e);
         }
     }
 }
@@ -364,13 +358,14 @@ fn hold_not_exist() {
         e
     } else {
         // macos hits this for some reason
+        /*
         #[cfg(target_os = "macos")]
         {
             eprintln!("macos zfs 1.9.4 is for some reason totally cool with creating holds on non-existent snaps");
             return;
         }
+        */
 
-        #[cfg(not(target_os = "macos"))]
         panic!("expected an error, got {:?}", e);
     };
 
@@ -379,7 +374,6 @@ fn hold_not_exist() {
     // linux (zfs 2.0.0) doesn't appear to return our error list, which is also concerning
     match e {
         // zfs 2.0.0 on linux:
-        #[cfg(target_os = "linux")]
         zfs_core::Error::Io { source: e } => {
             assert_eq!(e.kind(), io::ErrorKind::NotFound);
         }
