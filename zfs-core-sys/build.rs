@@ -97,7 +97,7 @@ fn main() {
             if let Some(v) = lzc_libdir {
                 println!("cargo:rustc-link-search=native={}", v.to_str().unwrap());
             }
-            println!("cargo:rustc-link-lib=native=zfs_core");
+            println!("cargo:rustc-link-lib=zfs_core");
         }
     }
 
