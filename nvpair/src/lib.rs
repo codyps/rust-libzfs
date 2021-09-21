@@ -389,7 +389,7 @@ impl NvEncoding {
 
 foreign_type! {
     /// An `NvList`
-    pub unsafe type NvList {
+    pub unsafe type NvList: Send {
         type CType = sys::nvlist;
         fn drop = sys::nvlist_free;
     }
