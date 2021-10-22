@@ -6,14 +6,11 @@ on:
 name: mac
 jobs:
   mac:
-    runs-on: macos-10.15
+    runs-on: macos-11
     strategy:
       matrix:
         rust:
-          - stable
           - beta
-          - nightly
-          - 1.48.0
     steps:
       - uses: actions/checkout@v2
 
@@ -26,8 +23,15 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v1
 
-      - name: Download openzfs-on-osx
-        run: curl -o zfs.pkg https://openzfsonosx.org/forum/download/file.php?id=309&sid=f486243ccdc8e8e13894f14ce0b28d93
+      # MD5 (OpenZFSonOsX-2.1.0-Big.Sur-11.pkg) = 80bee1c01362372ea3a803fdac56bfaa
+      - name: Download OpenZFSonOsX-2.1.0-Big.Sur-11.pkg
+        run: curl -o zfs.pkg https://openzfsonosx.org/forum/download/file.php?id=343&sid=4b2c0ab13fa308c9b91ea188ba907d02
+
+      - name: Check openzfs-on-osx
+        run: |
+          echo "80bee1c01362372ea3a803fdac56bfaa zfs.pkg" >md5.sum
+          md5sum -c md5.sum || { md5sum zfs.pkg; exit 1; }
+          rm md5.sum
 
       - name: Install openzfs-on-osx
         run: sudo installer -verbose -pkg zfs.pkg -target /
