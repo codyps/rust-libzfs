@@ -3,6 +3,7 @@ status = [
 	"test (beta)",
 	"test (1.48.0)",
 	"check",
+	"mac (beta)",
 ]
 cut_body_after = "---"
 delete_merged_branches = true
