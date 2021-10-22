@@ -21,6 +21,9 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v1
 
+      - name: Configure apt
+        run: echo 'APT::Acquire::Retries "3";' | sudo tee /etc/apt/apt.conf.d/80-retries
+
       - name: Install dependencies
         run: sudo apt install libzfslinux-dev zfsutils-linux
 
