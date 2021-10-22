@@ -27,12 +27,6 @@ jobs:
       - name: Download OpenZFSonOsX-2.1.0-Big.Sur-11.pkg
         run: curl -o zfs.pkg https://openzfsonosx.org/forum/download/file.php?id=343&sid=4b2c0ab13fa308c9b91ea188ba907d02
 
-      - name: Check openzfs-on-osx
-        run: |
-          echo "80bee1c01362372ea3a803fdac56bfaa zfs.pkg" >md5.sum
-          md5sum -c md5.sum || { md5sum zfs.pkg; exit 1; }
-          rm md5.sum
-
       - name: Install openzfs-on-osx
         run: sudo installer -verbose -pkg zfs.pkg -target /
 
