@@ -1,6 +1,10 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+// workaround for https://github.com/rust-lang/rust-bindgen/issues/1651
+#![allow(unknown_lints)]
+#![allow(deref_nullptr)]
+pub type size_t = ::std::os::raw::c_ulong;
 
 pub enum __va_list_tag {}
 

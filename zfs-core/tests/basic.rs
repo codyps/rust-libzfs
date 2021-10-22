@@ -35,9 +35,13 @@ impl TempFs {
         let z = zfs::Zfs::new()?;
         let nv = nvpair::NvList::try_new()?;
 
-        let rng = thread_rng();
+        let mut rng = thread_rng();
         for _ in 0..NUM_RETRIES {
-            let suffix: String = rng.sample_iter(Alphanumeric).take(NUM_RAND_CHARS).collect();
+            let suffix: String = (&mut rng)
+                .sample_iter(Alphanumeric)
+                .take(NUM_RAND_CHARS)
+                .map(|x| x as char)
+                .collect();
 
             let mut path = base.to_owned();
             path.push_str("/");
