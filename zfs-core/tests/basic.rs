@@ -505,9 +505,12 @@ fn send_recv() {
     snap2.push_str("@b");
 
     let mut stream = tempfile::tempfile().unwrap();
+    eprintln!("snap1: {}", snap1);
     z.send::<_, &str>(&snap1, None, stream.as_raw_fd(), zfs::SendFlags::default())
         .unwrap();
     stream.seek(io::SeekFrom::Start(0)).unwrap();
+    eprintln!("snap2: {}", snap2);
+    // FIXME: fails with macos 11.6, zfs 2.1.0
     z.receive::<_, &str>(&snap2, None, None, false, false, stream.as_raw_fd())
         .unwrap();
 

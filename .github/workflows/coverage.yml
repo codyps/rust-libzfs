@@ -3,10 +3,10 @@ on:
     branches-ignore:
       - '**.tmp'
 
-name: coveralls
+name: codecov
 
 jobs:
-  coveralls:
+  codecov:
     runs-on: ubuntu-20.04
     env:
       ZFS_TEMPFS: tpool
@@ -17,8 +17,12 @@ jobs:
         with:
           toolchain: nightly
           override: true
+          components: llvm-tools-preview
 
       - uses: Swatinem/rust-cache@v1
+
+      - name: Install cargo-binutils
+        run: cargo install cargo-binutils
 
       # note: this works around the gha images sometimes not being up-to-date
       # with ubuntu mirrors, which can result in 404s when fetching packages
@@ -38,16 +42,32 @@ jobs:
           args: --all-features --no-fail-fast
         env:
           CARGO_INCREMENTAL: '0'
-          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-      - run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
-      - run: zip -0 ccov.zip `find . \( -name "*.gc*" \) -print`
-      - run: ./grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info
-      - name: Archive code coverage results
+          RUSTFLAGS: '-Zinstrument-coverage'
+          LLVM_PROFILE_FILE: 'rust-libzfs-%p-%m.profraw'
+
+      - name: Merge coverage data
+        run: cargo profdata -- merge -sparse -o rust-libzfs.profdata rust-libzfs-*.profraw
+      - name: Generate coverage.txt
+        run: llvm-cov show rust-libzffs.profmap -instr-profile "$1" "$dest" > coverage.txt
+      - name: Fetch grcov
+        run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
+      - name: Generate lcov.info
+        run: ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+      - name: Archive lcov.info
         uses: actions/upload-artifact@v1
         with:
-          name: code-coverage-report
+          name: code-coverage-lcov
           path: lcov.info
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
+        with:
+          files: lcov.info
+          fail_ci_if_error: true
+      - name: Upload to codacy.com
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: lcov.info
       - name: Upload to coveralls
         uses: coverallsapp/github-action@v1.1.2
         with:
