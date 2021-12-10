@@ -6,3 +6,5 @@ Cargo.lock
 *.drr
 
 *.profraw
+
+tags
