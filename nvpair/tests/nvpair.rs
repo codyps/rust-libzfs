@@ -98,3 +98,22 @@ fn insert_cstr() {
     a.insert("hello", CStr::from_bytes_with_nul(b"bye\0").unwrap())
         .unwrap();
 }
+
+#[test]
+fn lookup_nvlist() {
+    let mut a = nvpair::NvList::new();
+    let mut b = nvpair::NvList::new();
+
+    a.insert("foo", "bar").unwrap();
+    b.insert("baz", a.as_ref()).unwrap();
+
+    {
+        let nvlr: &nvpair::NvListRef = b.lookup_nvlist("baz").unwrap();
+        nvlr.lookup_string("foo").unwrap();
+    }
+
+    {
+        let nvlr: &nvpair::NvListRef = b.lookup_nvlist("baz").unwrap();
+        nvlr.lookup_string("foo").unwrap();
+    }
+}

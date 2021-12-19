@@ -618,7 +618,7 @@ impl NvListRef {
         }
     }
 
-    pub fn lookup_nvlist<S: CStrArgument>(&self, name: S) -> io::Result<NvList> {
+    pub fn lookup_nvlist<S: CStrArgument>(&self, name: S) -> io::Result<&NvListRef> {
         let name = name.into_cstr();
 
         let mut n = MaybeUninit::uninit();
@@ -632,7 +632,7 @@ impl NvListRef {
         if v != 0 {
             Err(io::Error::from_raw_os_error(v))
         } else {
-            let r = unsafe { NvList::from_ptr(n.assume_init()) };
+            let r = unsafe { NvListRef::from_ptr(n.assume_init()) };
             Ok(r)
         }
     }
