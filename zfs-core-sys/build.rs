@@ -114,5 +114,6 @@ fn main() {
     println!("cargo:rustc-link-lib=nvpair");
     if target_os == "freebsd" {
         println!("cargo:rustc-link-lib=dylib:-as-needed=zutil");
+        println!("cargo:rustc-link-lib=dylib:-as-needed=spl");
     }
 }
