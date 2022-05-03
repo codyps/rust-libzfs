@@ -18,7 +18,7 @@ zfs-core-sys = { path = "../zfs-core-sys", version = "0.5.0" }
 cstr-argument = "0.1"
 foreign-types = "0.5.0"
 rand = "0.8"
-snafu = "0.6"
+snafu = "0.7"
 
 [dev-dependencies]
 os_pipe = "0.9"
