@@ -60,8 +60,9 @@ fn main() {
         let lookup_with: Option<Lookup> = lookup_with.map(|v| v.to_str().unwrap().parse().unwrap());
 
         lookup_with.unwrap_or_else(|| match target_os.as_str() {
-            // users have reported that this is required for freebsd. I have not tested it.
-            "freebsd" => Lookup::Link,
+            // Users have reported that this is required for freebsd and illumos. Not tested by
+            // Cody P Schafer.
+            "freebsd" | "illumos" => Lookup::Link,
 
             // openzfs on osx has the `libzfs_core.pc` file, installed into
             // `/usr/local/zfs/lib/pkgconfig`. Users _must_ ensure this is part of their
