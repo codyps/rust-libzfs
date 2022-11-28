@@ -21,6 +21,6 @@ rand = "0.8"
 snafu = "0.6"
 
 [dev-dependencies]
-os_pipe = "0.9"
+os_pipe = "1.1"
 tempfile = "3"
 libc = "0.2"
